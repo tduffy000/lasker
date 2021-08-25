@@ -2,10 +2,14 @@
 #[rustfmt::skip]
 
 use crate::board::Bitboard;
-use std::array;
+use std::convert::TryFrom;
 
 const FILE_A: u64 = 0x0101010101010101;
 const RANK_1: u64 = 0xFF;
+
+pub trait EnumToArray<T, const N: usize> {
+    fn array() -> [T; N];
+}
 
 pub enum Color {White, Black}
 
@@ -19,8 +23,8 @@ pub const FILES: [File; 8] = [
     File::A, File::B, File::C, File::D, File::E, File::F, File::G, File::H
 ];
 
-impl File {
-    pub fn get_array() -> [File; 8] {
+impl EnumToArray<File, 8> for File {
+    fn array() -> [File; 8] {
         FILES
     }
 }
@@ -41,8 +45,8 @@ pub const RANKS: [Rank; 8] = [
     Rank::Rank1, Rank::Rank2, Rank::Rank3, Rank::Rank4, Rank::Rank5, Rank::Rank6, Rank::Rank7, Rank::Rank8,
 ];
 
-impl Rank {
-    pub fn get_array() -> [Rank; 8] {
+impl EnumToArray<Rank, 8> for Rank {
+    fn array() -> [Rank; 8] {
         RANKS
     }
 }
@@ -91,9 +95,22 @@ pub const SQUARES: [Square; 64] = [
     Square::A8, Square::B8, Square::C8, Square::D8, Square::E8, Square::F8, Square::G8, Square::H8, 
 ];
 
-impl Square {
-    pub fn get_array() -> [Square; 64] {
+impl EnumToArray<Square, 64> for Square {
+    fn array() -> [Square; 64] {
         SQUARES
+    }
+}
+
+// TODO: replace this error
+impl TryFrom<usize> for Square {
+    type Error = std::io::ErrorKind;
+    
+    fn try_from(value: usize) -> Result<Self, Self::Error> {
+        if let Some(sq) = SQUARES.get(value) {
+            Ok(*sq)
+        } else {
+            Err(std::io::ErrorKind::InvalidData)
+        }
     }
 }
 
@@ -103,28 +120,38 @@ impl Into<Bitboard> for Square {
     }
 }
 
-fn get_bit_index(b: u64) -> usize {
-    // confirm only one bit set
+// can use Kernighan's algo here
+fn set_bits(b: u64) -> Vec<usize> {
+    let mut v = Vec::new();
     for sh in 0..=64 {
-        if b & (0x1 << sh) != 0x0 { return sh }
+        if b & (0x1 << sh) != 0x0 { v.push(sh) }
     }
-    panic!()
+    v
 }
 
-fn get_square(bb: Bitboard) -> Square {
-    let idx = get_bit_index(bb.into());
-    if let Some(sq) = SQUARES.get(idx) {
-        *sq
-    } else {
-        panic!()
+fn get_bit_index(b: u64) -> Option<usize> {
+    // confirm that b is a power of 2 (only one bit set)
+    if !(b & (b-1) == 0x0) { return None };
+    for sh in 0..64 {
+        if b & (0x1 << sh) != 0x0 { return Some(sh) }
     }
+    None
+}
+
+fn get_square(bb: Bitboard) -> Option<Square> {
+    if let Some(idx) = get_bit_index(bb.into()) {
+        if let Some(sq) = SQUARES.get(idx) {
+            return Some(*sq)
+        }
+    }
+    None
 }
 
 impl Square {
     pub fn new(f: File, r: Rank) -> Self {
         let fbb: Bitboard = f.into();
         let rbb: Bitboard = r.into();
-        get_square(fbb & rbb)
+        get_square(fbb & rbb).unwrap()
     }
 
     // calculate Manhattan distance

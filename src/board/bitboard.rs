@@ -1,6 +1,6 @@
 use std::{fmt::Debug, ops::{BitAnd, BitOr}};
 
-use super::types::{Square, File, Rank};
+use super::types::{Square, File, Rank, EnumToArray};
 
 const BLACK_SQUARES: u64 = 0xAA55AA55AA55AA55;
 
@@ -49,9 +49,9 @@ impl Debug for Bitboard {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let line_br = "+---+---+---+---+---+---+---+---+\n";
         f.write_str(line_br)?;
-        for rank in Rank::get_array().iter().rev() {
+        for rank in Rank::array().iter().rev() {
             f.write_str(format!("{} ", *rank as usize).as_str())?;
-            for file in File::get_array().iter().rev() {
+            for file in File::array().iter().rev() {
                 let sq: Bitboard = Square::new(*file, *rank).into();
                 let s = if (*self & sq).0 != 0x0 { "| X " } else { "|   " };
                 f.write_str(s)?;
