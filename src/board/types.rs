@@ -72,7 +72,7 @@ pub enum Piece {
     BlackKing,
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Square {
     A1, B1, C1, D1, E1, F1, G1, H1,
     A2, B2, C2, D2, E2, F2, G2, H2,
@@ -101,15 +101,26 @@ impl EnumToArray<Square, 64> for Square {
     }
 }
 
-// TODO: replace this error
+#[derive(Debug)]
+pub struct SquareIndexError {
+    idx: usize,
+    msg: String,
+}
+
+impl SquareIndexError {
+    fn new(idx: usize, msg: impl ToString) -> Self {
+        SquareIndexError { idx, msg: msg.to_string() }
+    }
+}
+
 impl TryFrom<usize> for Square {
-    type Error = std::io::ErrorKind;
+    type Error = SquareIndexError;
     
     fn try_from(value: usize) -> Result<Self, Self::Error> {
         if let Some(sq) = SQUARES.get(value) {
             Ok(*sq)
         } else {
-            Err(std::io::ErrorKind::InvalidData)
+            Err(SquareIndexError::new(value, "Square out of range!"))
         }
     }
 }
@@ -123,14 +134,14 @@ impl Into<Bitboard> for Square {
 // can use Kernighan's algo here
 fn set_bits(b: u64) -> Vec<usize> {
     let mut v = Vec::new();
-    for sh in 0..=64 {
+    for sh in 0..64 {
         if b & (0x1 << sh) != 0x0 { v.push(sh) }
     }
     v
 }
 
 fn get_bit_index(b: u64) -> Option<usize> {
-    // confirm that b is a power of 2 (only one bit set)
+    if b == 0x0 { return None };
     if !(b & (b-1) == 0x0) { return None };
     for sh in 0..64 {
         if b & (0x1 << sh) != 0x0 { return Some(sh) }
@@ -154,10 +165,58 @@ impl Square {
         get_square(fbb & rbb).unwrap()
     }
 
-    // calculate Manhattan distance
-    pub fn distance(&self, other: Square) -> usize {
-
-        1
-    }
 }
 
+#[cfg(test)]
+mod tests {
+
+    use super::*;
+
+    #[test]
+    fn test_set_bits() {
+        assert_eq!(set_bits(0x0), Vec::<usize>::new());
+    }
+
+    #[test]
+    fn test_get_bit_index() {
+        assert!(get_bit_index(0x0).is_none());
+        assert_eq!(get_bit_index(0x08), Some(3));
+    }
+
+    #[test]
+    fn test_get_square() {
+
+    }
+
+    #[test]
+    fn test_try_from_usize_for_sq() {
+        let sq_b1 = Square::try_from(1).unwrap();
+        assert_eq!(sq_b1, Square::B1);
+
+        let no_sq = Square::try_from(65);
+        assert!(no_sq.is_err());   
+    }
+
+    #[test]
+    fn test_file_to_bitboard() {
+        let bb: Bitboard = File::B.into();
+        let expected_bit_idx: Vec<usize> = vec![
+            Square::B1, Square::B2, Square::B3, Square::B4,
+            Square::B5, Square::B6, Square::B7, Square::B8
+        ].iter().map(|sq| *sq as usize).collect();
+        let set_bits = set_bits(bb.into());
+        assert_eq!(expected_bit_idx, set_bits);
+    }
+
+    #[test]
+    fn test_rank_to_bitboard() {
+        let bb: Bitboard = Rank::Rank5.into();
+        let expected_bit_idx: Vec<usize> = vec![
+            Square::A5, Square::B5, Square::C5, Square::D5,
+            Square::E5, Square::F5, Square::G5, Square::H5,
+        ].iter().map(|sq| *sq as usize).collect();
+        let set_bits = set_bits(bb.into());
+        assert_eq!(expected_bit_idx, set_bits);
+    }
+
+}
