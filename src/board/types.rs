@@ -175,12 +175,20 @@ mod tests {
     #[test]
     fn test_set_bits() {
         assert_eq!(set_bits(0x0), Vec::<usize>::new());
+        // 28 =  + 2 ^ 2 (4) + 3 ^ 2 (8) + 4 ^ 2 (16)
+        let mut r1 = set_bits(0x1c); 
+        let mut e1 = vec![2, 3, 4];
+        r1.sort();
+        e1.sort();
+        assert_eq!(r1, e1);
     }
 
     #[test]
     fn test_get_bit_index() {
         assert!(get_bit_index(0x0).is_none());
         assert_eq!(get_bit_index(0x08), Some(3));
+        // non powers of 2 return None
+        assert!(get_bit_index(0x1c).is_none());
     }
 
     #[test]
