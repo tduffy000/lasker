@@ -150,10 +150,8 @@ fn get_bit_index(b: u64) -> Option<usize> {
 }
 
 fn get_square(bb: Bitboard) -> Option<Square> {
-    if let Some(idx) = get_bit_index(bb.into()) {
-        if let Some(sq) = SQUARES.get(idx) {
-            return Some(*sq)
-        }
+    if let Some(sq) = SQUARES.get(bb.0 as usize) {
+        return Some(*sq)
     }
     None
 }
@@ -193,7 +191,10 @@ mod tests {
 
     #[test]
     fn test_get_square() {
-
+        let expected = Square::D2;
+        let bb = Bitboard(0xb);
+        let result = get_square(bb).unwrap();
+        assert_eq!(expected, result)
     }
 
     #[test]
