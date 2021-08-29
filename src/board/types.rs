@@ -140,15 +140,6 @@ fn set_bits(b: u64) -> Vec<usize> {
     v
 }
 
-fn get_bit_index(b: u64) -> Option<usize> {
-    if b == 0x0 { return None };
-    if !(b & (b-1) == 0x0) { return None };
-    for sh in 0..64 {
-        if b & (0x1 << sh) != 0x0 { return Some(sh) }
-    }
-    None
-}
-
 fn get_squares(bb: Bitboard) -> Vec<Square> {
     let set = set_bits(bb.into());
     let mut squares = Vec::new();
@@ -185,14 +176,6 @@ mod tests {
         r1.sort();
         e1.sort();
         assert_eq!(r1, e1);
-    }
-
-    #[test]
-    fn test_get_bit_index() {
-        assert!(get_bit_index(0x0).is_none());
-        assert_eq!(get_bit_index(0x08), Some(3));
-        // non powers of 2 return None
-        assert!(get_bit_index(0x1c).is_none());
     }
 
     #[test]
