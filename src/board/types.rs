@@ -13,7 +13,7 @@ pub trait EnumToArray<T, const N: usize> {
 
 pub enum Color {White, Black}
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 #[repr(usize)]
 pub enum File {
     A, B, C, D, E, F, G, H
@@ -35,7 +35,7 @@ impl Into<Bitboard> for File {
     }
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 #[repr(usize)]
 pub enum Rank {
     Rank1 = 1, Rank2, Rank3, Rank4, Rank5, Rank6, Rank7, Rank8
@@ -72,7 +72,7 @@ pub enum Piece {
     BlackKing,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Square {
     A1, B1, C1, D1, E1, F1, G1, H1,
     A2, B2, C2, D2, E2, F2, G2, H2,
@@ -149,18 +149,24 @@ fn get_bit_index(b: u64) -> Option<usize> {
     None
 }
 
-fn get_square(bb: Bitboard) -> Option<Square> {
-    if let Some(sq) = SQUARES.get(bb.0 as usize) {
-        return Some(*sq)
+fn get_squares(bb: Bitboard) -> Vec<Square> {
+    let set = set_bits(bb.into());
+    let mut squares = Vec::new();
+    for s in set {
+        if let Some(sq) = SQUARES.get(s) {
+            squares.push(*sq)
+        }
     }
-    None
+    squares
 }
 
 impl Square {
     pub fn new(f: File, r: Rank) -> Self {
         let fbb: Bitboard = f.into();
         let rbb: Bitboard = r.into();
-        get_square(fbb & rbb).unwrap()
+        let sq = get_squares(fbb & rbb);
+        assert_eq!(sq.len(), 1);
+        sq[0]
     }
 
 }
@@ -190,10 +196,12 @@ mod tests {
     }
 
     #[test]
-    fn test_get_square() {
-        let expected = Square::D2;
+    fn test_get_squares() {
+        let mut expected = vec![Square::A1, Square::B1, Square::D1];
         let bb = Bitboard(0xb);
-        let result = get_square(bb).unwrap();
+        let mut result = get_squares(bb);
+        expected.sort();
+        result.sort();
         assert_eq!(expected, result)
     }
 
