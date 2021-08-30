@@ -180,12 +180,19 @@ mod tests {
 
     #[test]
     fn test_get_squares() {
-        let mut expected = vec![Square::A1, Square::B1, Square::D1];
-        let bb = Bitboard(0xb);
-        let mut result = get_squares(bb);
-        expected.sort();
-        result.sort();
-        assert_eq!(expected, result)
+        let mut e1 = vec![Square::A1, Square::B1, Square::D1];
+        let bb1 = Bitboard(0xb);
+        let mut r1 = get_squares(bb1);
+        e1.sort();
+        r1.sort();
+        assert_eq!(e1, r1);
+
+        let mut e2 = vec![Square::C1, Square::D1, Square::E1];
+        let bb2 = Bitboard(0x1c);
+        let mut r2 = get_squares(bb2);
+        e2.sort();
+        r2.sort();
+        assert_eq!(e2, r2)
     }
 
     #[test]
