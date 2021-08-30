@@ -1,4 +1,4 @@
-use std::{fmt::Debug, ops::{BitAnd, BitOr}};
+use std::{fmt::Debug, ops::{BitAnd, BitAndAssign, BitOr}};
 
 use super::types::{Square, File, Rank, EnumToArray};
 
@@ -9,7 +9,7 @@ pub struct Bitboard(pub u64);
 
 impl From<u64> for Bitboard {
     fn from(b: u64) -> Self {
-        Bitboard(b)
+        Self(b)
     }
 }
 
@@ -17,6 +17,16 @@ impl Into<u64> for Bitboard {
     fn into(self) -> u64 {
         self.0
     }
+}
+
+impl From<Vec<Square>> for Bitboard {
+  fn from(v: Vec<Square>) -> Self {
+    let mut bb = Self::empty();
+    for sq in v {
+      bb &= sq.into();
+    }
+    bb
+  }
 }
 
 impl Bitboard {
@@ -35,6 +45,14 @@ impl BitAnd for Bitboard {
     fn bitand(self, rhs: Self) -> Self::Output {
         Bitboard(self.0 & rhs.0)
     }
+}
+
+impl BitAndAssign for Bitboard {
+
+  fn bitand_assign(&mut self, rhs: Self) {
+      self.0 &= rhs.0; 
+  }
+
 }
 
 impl BitOr for Bitboard {

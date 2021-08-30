@@ -2,7 +2,7 @@ mod bitboard;
 mod types;
 
 use bitboard::Bitboard;
-use types::{Color, Square};
+use types::{Color, Square, Rank};
 
 pub struct BoardState {
     board: Board,
@@ -50,8 +50,50 @@ impl Board {
     }
 }
 
-// impl Default for Board {
-//     fn default() -> Self {
+impl Default for Board {
+    fn default() -> Self {
+        Self {
+            white_pawns: Rank::Rank2.into(),
+            white_knights: Bitboard::from(vec![Square::B1, Square::G1]),
+            white_bishops: Bitboard::from(vec![Square::C1, Square::F1]),
+            white_rooks: Bitboard::from(vec![Square::A1, Square::H1]),
+            white_queens: Square::D1.into(),
+            white_king: Square::E1.into(),
+            black_pawns: Rank::Rank7.into(),
+            black_knights: Bitboard::from(vec![Square::B8, Square::G8]),
+            black_bishops: Bitboard::from(vec![Square::C8, Square::F8]),
+            black_rooks: Bitboard::from(vec![Square::A8, Square::H8]),
+            black_queens: Square::D8.into(),
+            black_king: Square::E8.into(),
+        }
+    }
+}
 
+
+// impl Debug for Board {
+//     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+//         let line_br = "+---+---+---+---+---+---+---+---+\n";
+//         f.write_str(line_br)?;
+//         for rank in Rank::array().iter().rev() {
+//             // print pieces
+//             for file in File::array().iter().rev() {
+//                 // print pieces
+//             }
+//             f.write_str("|\n")?;
+//             f.write_str(line_br)?;
+//         }
+//         f.write_str("    a   b   c   d   e   f   g   h  \n")?;
+//         Ok(())
 //     }
 // }
+
+
+#[cfg(test)]
+mod tests {
+
+    #[test]
+    fn test_default_board() {
+
+    }
+
+}
