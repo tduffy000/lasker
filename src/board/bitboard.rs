@@ -1,10 +1,10 @@
-use std::{fmt::Debug, ops::{BitAnd, BitAndAssign, BitOr}};
+use std::{fmt::Debug, ops::{BitAnd, BitAndAssign, BitOr, BitOrAssign}};
 
 use super::types::{Square, File, Rank, EnumToArray};
 
 const BLACK_SQUARES: u64 = 0xAA55AA55AA55AA55;
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Bitboard(pub u64);
 
 impl From<u64> for Bitboard {
@@ -23,7 +23,7 @@ impl From<Vec<Square>> for Bitboard {
   fn from(v: Vec<Square>) -> Self {
     let mut bb = Self::empty();
     for sq in v {
-      bb &= sq.into();
+      bb |= sq.into();
     }
     bb
   }
@@ -45,6 +45,13 @@ impl BitAnd for Bitboard {
     fn bitand(self, rhs: Self) -> Self::Output {
         Bitboard(self.0 & rhs.0)
     }
+}
+
+impl BitOrAssign for Bitboard {
+  fn bitor_assign(&mut self, rhs: Self) {
+      self.0 |= rhs.0;
+  }
+
 }
 
 impl BitAndAssign for Bitboard {
@@ -138,6 +145,14 @@ mod tests {
           a   b   c   d   e   f   g   h      
       ");
       assert_eq!(rm_whitespace(format!("{:?}", Bitboard::full())), full_board_fmt);
+    }
+
+    #[test]
+    fn test_from_vec() {
+      let sq = vec![Square::A2, Square::F7];
+      let a2_bb: Bitboard = Square::A2.into();
+      let f7_bb: Bitboard = Square::F7.into();
+      assert_eq!(Bitboard::from(sq), a2_bb | f7_bb)
     }
 
 }

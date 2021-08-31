@@ -1,8 +1,11 @@
+use std::fmt::Debug;
+
 mod bitboard;
 mod types;
 
 use bitboard::Bitboard;
-use types::{Color, Square, Rank};
+use types::{Color, Square, File, Rank};
+use crate::board::types::EnumToArray;
 
 pub struct BoardState {
     board: Board,
@@ -28,7 +31,7 @@ struct Board {
 }
 
 impl Board {
-    fn pieces(self, color: Color) -> Bitboard {
+    fn pieces(&self, color: Color) -> Bitboard {
         match color {
             Color::White => {
                 self.white_pawns
@@ -70,30 +73,71 @@ impl Default for Board {
 }
 
 
-// impl Debug for Board {
-//     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-//         let line_br = "+---+---+---+---+---+---+---+---+\n";
-//         f.write_str(line_br)?;
-//         for rank in Rank::array().iter().rev() {
-//             // print pieces
-//             for file in File::array().iter().rev() {
-//                 // print pieces
-//             }
-//             f.write_str("|\n")?;
-//             f.write_str(line_br)?;
-//         }
-//         f.write_str("    a   b   c   d   e   f   g   h  \n")?;
-//         Ok(())
-//     }
-// }
+impl Debug for Board {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let line_br = "+---+---+---+---+---+---+---+---+\n";
+        f.write_str(line_br)?;
+        for rank in Rank::array().iter().rev() {
+            f.write_str(format!("{} ", *rank as usize).as_str())?;
+            for file in File::array().iter().rev() {
+                // print pieces via intersection
+                let sq: Bitboard = Square::new(*file, *rank).into();
+                let white_bb = self.pieces(Color::White);
+                let black_bb = self.pieces(Color::Black);
+                let s = if (white_bb & sq).0 != 0x0 {
+                    "| w "
+                } else if (black_bb & sq).0 != 0x0 {
+                    "| b "
+                } else {
+                    "|   "
+                };
+                f.write_str(s)?;
+                
+            }
+            f.write_str("|\n")?;
+            f.write_str(line_br)?;
+        }
+        f.write_str("    a   b   c   d   e   f   g   h  \n")?;
+        Ok(())
+    }
+}
 
 
 #[cfg(test)]
 mod tests {
 
+    use super::*;
+    
+    fn rm_whitespace(s: impl ToString) -> String {
+        let mut out = s.to_string();
+        out.retain(|c| !c.is_whitespace());
+        out
+    }
+
+
     #[test]
     fn test_default_board() {
-
+        let default_board_fmt = rm_whitespace("
+        +---+---+---+---+---+---+---+---+        
+      8 | b | b | b | b | b | b | b | b |
+        +---+---+---+---+---+---+---+---+
+      7 | b | b | b | b | b | b | b | b |
+        +---+---+---+---+---+---+---+---+
+      6 |   |   |   |   |   |   |   |   |
+        +---+---+---+---+---+---+---+---+
+      5 |   |   |   |   |   |   |   |   |
+        +---+---+---+---+---+---+---+---+
+      4 |   |   |   |   |   |   |   |   |
+        +---+---+---+---+---+---+---+---+
+      3 |   |   |   |   |   |   |   |   |
+        +---+---+---+---+---+---+---+---+
+      2 | w | w | w | w | w | w | w | w |
+        +---+---+---+---+---+---+---+---+
+      1 | w | w | w | w | w | w | w | w |
+        +---+---+---+---+---+---+---+---+
+          a   b   c   d   e   f   g   h      
+      ");
+        assert_eq!(rm_whitespace(format!("{:?}", Board::default())), default_board_fmt);
     }
 
 }

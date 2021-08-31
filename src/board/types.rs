@@ -59,7 +59,7 @@ impl Into<Bitboard> for Rank {
 
 pub enum Piece {
     WhitePawn,
-    WhiteKnight,
+    WhiteKnight ,
     WhiteBishop,
     WhiteRook,
     WhiteQueen,
@@ -70,6 +70,25 @@ pub enum Piece {
     BlackRook,
     BlackQueen,
     BlackKing,
+}
+
+impl Into<char> for Piece {
+    fn into(self) -> char {
+        match self {
+            Self::WhitePawn => 'p',
+            Self::WhiteKnight => 'n',
+            Self::WhiteBishop => 'b',
+            Self::WhiteRook => 'r',
+            Self::WhiteQueen => 'q',
+            Self::WhiteKing => 'k',
+            Self::BlackPawn => 'P',
+            Self::BlackKnight => 'N',
+            Self::BlackBishop => 'B',
+            Self::BlackRook => 'R',
+            Self::BlackQueen => 'Q',
+            Self::BlackKing => 'K',
+        }
+    }
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
