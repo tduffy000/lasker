@@ -2,8 +2,12 @@ use std::convert::TryFrom;
 
 use crate::board::{Bitboard, error::SquareIndexError};
 
+// using Little-Endian Rank File Mapping
+// @see https://www.chessprogramming.org/Square_Mapping_Considerations
 const FILE_A: u64 = 0x0101010101010101;
 const RANK_1: u64 = 0xFF;
+const A1_H8_DIAGONAL:u64 = 0x8040201008040201;
+const H1_A1_DIAGONAL: u64 = 0x0102040810204080;
 
 pub trait EnumToArray<T, const N: usize> {
     fn array() -> [T; N];
@@ -145,6 +149,28 @@ impl Square {
         sq[0]
     }
 
+    pub fn rank(&self) -> Rank {
+        let pos = *self as usize;
+        let rank_pos = pos >> 3;
+        *Rank::array().get(rank_pos).unwrap()
+    }
+
+    pub fn file(&self) -> File {
+        let pos = *self as usize;
+        let file_pos = pos & 7; 
+        *File::array().get(file_pos).unwrap()
+    }
+
+}
+
+pub enum Direction {
+    North = 1,
+    NorthEast = 9,
+    SouthEast = 7,
+    South = -1,
+    SouthWest = -9,
+    West = -8,
+    NorthWest = -7,
 }
 
 #[cfg(test)]

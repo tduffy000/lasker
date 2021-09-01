@@ -3,6 +3,7 @@ use std::{fmt::Debug, ops::{BitAnd, BitAndAssign, BitOr, BitOrAssign, BitXor, Bi
 use crate::board::types::{Square, File, Rank, EnumToArray};
 use crate::board::utils::set_bits;
 
+const WHITE_SQUARE: u64 = 0x55AA55AA55AA55AA;
 const BLACK_SQUARES: u64 = 0xAA55AA55AA55AA55;
 
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
