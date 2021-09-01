@@ -1,7 +1,9 @@
 use std::fmt::Debug;
 
 mod bitboard;
+mod error;
 mod types;
+mod utils;
 
 use bitboard::Bitboard;
 use types::{Color, Square, File, Rank};
@@ -80,7 +82,6 @@ impl Debug for Board {
         for rank in Rank::array().iter().rev() {
             f.write_str(format!("{} ", *rank as usize).as_str())?;
             for file in File::array().iter().rev() {
-                // print pieces via intersection
                 let sq: Bitboard = Square::new(*file, *rank).into();
                 let white_bb = self.pieces(Color::White);
                 let black_bb = self.pieces(Color::Black);

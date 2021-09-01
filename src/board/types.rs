@@ -1,8 +1,6 @@
-// https://github.com/official-stockfish/Stockfish/blob/master/src/types.h
-#[rustfmt::skip]
-
-use crate::board::Bitboard;
 use std::convert::TryFrom;
+
+use crate::board::{Bitboard, error::SquareIndexError};
 
 const FILE_A: u64 = 0x0101010101010101;
 const RANK_1: u64 = 0xFF;
@@ -120,18 +118,6 @@ impl EnumToArray<Square, 64> for Square {
     }
 }
 
-#[derive(Debug)]
-pub struct SquareIndexError {
-    idx: usize,
-    msg: String,
-}
-
-impl SquareIndexError {
-    fn new(idx: usize, msg: impl ToString) -> Self {
-        SquareIndexError { idx, msg: msg.to_string() }
-    }
-}
-
 impl TryFrom<usize> for Square {
     type Error = SquareIndexError;
     
@@ -150,31 +136,11 @@ impl Into<Bitboard> for Square {
     }
 }
 
-// can use Kernighan's algo here
-fn set_bits(b: u64) -> Vec<usize> {
-    let mut v = Vec::new();
-    for sh in 0..64 {
-        if b & (0x1 << sh) != 0x0 { v.push(sh) }
-    }
-    v
-}
-
-fn get_squares(bb: Bitboard) -> Vec<Square> {
-    let set = set_bits(bb.into());
-    let mut squares = Vec::new();
-    for s in set {
-        if let Some(sq) = SQUARES.get(s) {
-            squares.push(*sq)
-        }
-    }
-    squares
-}
-
 impl Square {
     pub fn new(f: File, r: Rank) -> Self {
         let fbb: Bitboard = f.into();
         let rbb: Bitboard = r.into();
-        let sq = get_squares(fbb & rbb);
+        let sq: Vec<Square> = (fbb & rbb).into();
         assert_eq!(sq.len(), 1);
         sq[0]
     }
@@ -185,34 +151,7 @@ impl Square {
 mod tests {
 
     use super::*;
-
-    #[test]
-    fn test_set_bits() {
-        assert_eq!(set_bits(0x0), Vec::<usize>::new());
-        // 28 =  + 2 ^ 2 (4) + 3 ^ 2 (8) + 4 ^ 2 (16)
-        let mut r1 = set_bits(0x1c); 
-        let mut e1 = vec![2, 3, 4];
-        r1.sort();
-        e1.sort();
-        assert_eq!(r1, e1);
-    }
-
-    #[test]
-    fn test_get_squares() {
-        let mut e1 = vec![Square::A1, Square::B1, Square::D1];
-        let bb1 = Bitboard(0xb);
-        let mut r1 = get_squares(bb1);
-        e1.sort();
-        r1.sort();
-        assert_eq!(e1, r1);
-
-        let mut e2 = vec![Square::C1, Square::D1, Square::E1];
-        let bb2 = Bitboard(0x1c);
-        let mut r2 = get_squares(bb2);
-        e2.sort();
-        r2.sort();
-        assert_eq!(e2, r2)
-    }
+    use crate::board::utils::set_bits;
 
     #[test]
     fn test_try_from_usize_for_sq() {
