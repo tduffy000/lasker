@@ -49,8 +49,12 @@ impl Bitboard {
         Bitboard(0x0)
     }
 
-    fn full() -> Self {
+    fn universe() -> Self {
         Bitboard(!0x0)
+    }
+
+    fn pop_count(&self) -> u32 {
+      self.0.count_ones()
     }
 }
 
@@ -160,25 +164,81 @@ mod tests {
 
     #[test]
     fn test_bit_and() {
-
+      let bb = Bitboard(0x15);
+      let and = bb & Bitboard(0x1);
+      assert_eq!(and, Bitboard(0x1));
+      // identity
+      assert_eq!(bb & Bitboard(0x15), Bitboard(0x15));
     }
 
     #[test]
     fn test_bit_and_assign() {
-
+      let mut bb = Bitboard(0x1);
+      bb &= Bitboard(0x1);
+      assert_eq!(bb, Bitboard(0x1));
+      bb &= Bitboard(0x11);
+      assert_eq!(bb, Bitboard(0x11));
     }
 
     #[test]
-    fn test_bit_or() {}
+    fn test_bit_or() {
+      let bb = Bitboard(0x1);
+      let or = bb | Bitboard(0xf);
+      assert_eq!(or, Bitboard(0xf));
+      // identity
+      assert_eq!(bb | Bitboard(0x1), Bitboard(0x1));
+    }
 
     #[test]
-    fn test_bit_or_assign() {}
+    fn test_bit_or_assign() {
+      let mut bb = Bitboard(0x1);
+      bb |= Bitboard(0x1);
+      assert_eq!(bb, Bitboard(0x1));
+      bb |= Bitboard(0x11);
+      assert_eq!(bb, Bitboard(0x11));
+    }
 
     #[test]
-    fn test_bit_xor() {}
+    fn test_bit_xor() {
+      let bb = Bitboard(0x101);
+      let xor = bb ^ Bitboard(0x100);
+      let union = bb ^ Bitboard(0x010);
+      assert_eq!(xor, Bitboard(0x001));
+      assert_eq!(union, Bitboard(0x111));
+    }
 
     #[test]
-    fn test_bit_xor_assign() {}
+    fn test_bit_xor_assign() {
+      let mut bb = Bitboard(0x10);
+      bb ^= Bitboard(0x1);
+      assert_eq!(bb, Bitboard(0x11));
+      bb ^= Bitboard(0x1);
+      assert_eq!(bb, Bitboard(0x10)); 
+    }
+
+    #[test]
+    fn test_empty() {
+      let bb = Bitboard::empty();
+      assert_eq!(bb, Bitboard(0));
+      assert_eq!(bb, Bitboard(0x0));
+    }
+
+    #[test]
+    fn test_universe() {
+      let bb = Bitboard::universe();
+      assert_eq!(bb, Bitboard(u64::MAX));
+      assert_eq!(bb, Bitboard(!0x0));
+    }
+
+    #[test]
+    fn test_pop_count() {
+      let mut bb = Bitboard::empty();
+      for i in 0..63 {
+        assert_eq!(bb.pop_count(), i);
+        bb |= Bitboard(0x1 << i);
+        assert_eq!(bb.pop_count(), i + 1);
+      }
+    }
 
     fn rm_whitespace(s: impl ToString) -> String {
         let mut out = s.to_string();
@@ -229,7 +289,7 @@ mod tests {
         +---+---+---+---+---+---+---+---+
           a   b   c   d   e   f   g   h      
       ");
-      assert_eq!(rm_whitespace(format!("{:?}", Bitboard::full())), full_board_fmt);
+      assert_eq!(rm_whitespace(format!("{:?}", Bitboard::universe())), full_board_fmt);
     }
 
 }
