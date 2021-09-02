@@ -131,10 +131,18 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_from_u64() {}
+    fn test_from_u64() {
+      let b = 0x15;
+      let n = 21;
+      assert_eq!(Bitboard::from(b), Bitboard(n));
+      assert_eq!(Bitboard::from(n), Bitboard(b));
+    }
 
     #[test]
-    fn test_into_u64() {}
+    fn test_into_u64() {
+      let b: u64 = Bitboard(0x15).into();
+      assert_eq!(b, 21); 
+    }
 
     #[test]
     fn test_from_vec_square() {
