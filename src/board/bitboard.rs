@@ -181,11 +181,9 @@ mod tests {
 
     #[test]
     fn test_bit_and_assign() {
-      let mut bb = Bitboard(0x1);
-      bb &= Bitboard(0x1);
-      assert_eq!(bb, Bitboard(0x1));
-      bb &= Bitboard(0x11);
-      assert_eq!(bb, Bitboard(0x11));
+      let mut bb = Bitboard(0b100);
+      bb &= Bitboard(0b101);
+      assert_eq!(bb, Bitboard(0b100));
     }
 
     #[test]
