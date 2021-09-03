@@ -15,7 +15,7 @@ pub trait EnumToArray<T, const N: usize> {
 
 pub enum Color {White, Black}
 
-#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
 #[repr(usize)]
 pub enum File {
     A, B, C, D, E, F, G, H
@@ -37,7 +37,7 @@ impl Into<Bitboard> for File {
     }
 }
 
-#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
 #[repr(usize)]
 pub enum Rank {
     Rank1 = 1, Rank2, Rank3, Rank4, Rank5, Rank6, Rank7, Rank8
@@ -208,6 +208,47 @@ mod tests {
         ].iter().map(|sq| *sq as usize).collect();
         let set_bits = set_bits(bb.into());
         assert_eq!(expected_bit_idx, set_bits);
+    }
+
+    #[test]
+    fn test_square_new() {
+        let f = File::C;
+        let r = Rank::Rank3;
+        let sq = Square::new(f, r);
+        assert_eq!(sq, Square::C3);
+    }
+
+    #[test]
+    fn test_square_file() {
+        let sq = Square::D4;
+        assert_eq!(sq.file(), File::D);
+    }
+
+    #[test]
+    fn test_square_rank() {
+        let sq = Square::F7;
+        assert_eq!(sq.rank(), Rank::Rank7);
+    }
+
+    #[test]
+    fn test_square_into_bitboard() {
+        let sq = Square::B1;
+        let sq_bb: Bitboard = sq.into();
+        assert_eq!(sq_bb, Bitboard(0b10));
+    }
+
+    #[test]
+    fn test_square_from_usize() {
+        let valid_idx = 10;
+        let res_valid = Square::try_from(valid_idx);
+        assert!(res_valid.is_ok());
+        if let Ok(sq) = res_valid {
+            assert_eq!(sq, Square::C2);
+        }
+
+        let invalid_idx = 100;
+        let res_invalid = Square::try_from(invalid_idx);
+        assert!(res_invalid.is_err());
     }
 
 }
