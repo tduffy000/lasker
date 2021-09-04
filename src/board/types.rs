@@ -1,15 +1,21 @@
-// https://github.com/official-stockfish/Stockfish/blob/master/src/types.h
-#[rustfmt::skip]
+use std::convert::TryFrom;
 
-use crate::board::Bitboard;
-use std::array;
+use crate::board::{Bitboard, error::SquareIndexError};
 
+// using Little-Endian Rank File Mapping
+// @see https://www.chessprogramming.org/Square_Mapping_Considerations
 const FILE_A: u64 = 0x0101010101010101;
 const RANK_1: u64 = 0xFF;
+const A1_H8_DIAGONAL:u64 = 0x8040201008040201;
+const H1_A1_DIAGONAL: u64 = 0x0102040810204080;
+
+pub trait EnumToArray<T, const N: usize> {
+    fn array() -> [T; N];
+}
 
 pub enum Color {White, Black}
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
 #[repr(usize)]
 pub enum File {
     A, B, C, D, E, F, G, H
@@ -19,8 +25,8 @@ pub const FILES: [File; 8] = [
     File::A, File::B, File::C, File::D, File::E, File::F, File::G, File::H
 ];
 
-impl File {
-    pub fn get_array() -> [File; 8] {
+impl EnumToArray<File, 8> for File {
+    fn array() -> [File; 8] {
         FILES
     }
 }
@@ -31,7 +37,7 @@ impl Into<Bitboard> for File {
     }
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
 #[repr(usize)]
 pub enum Rank {
     Rank1 = 1, Rank2, Rank3, Rank4, Rank5, Rank6, Rank7, Rank8
@@ -41,8 +47,8 @@ pub const RANKS: [Rank; 8] = [
     Rank::Rank1, Rank::Rank2, Rank::Rank3, Rank::Rank4, Rank::Rank5, Rank::Rank6, Rank::Rank7, Rank::Rank8,
 ];
 
-impl Rank {
-    pub fn get_array() -> [Rank; 8] {
+impl EnumToArray<Rank, 8> for Rank {
+    fn array() -> [Rank; 8] {
         RANKS
     }
 }
@@ -55,7 +61,7 @@ impl Into<Bitboard> for Rank {
 
 pub enum Piece {
     WhitePawn,
-    WhiteKnight,
+    WhiteKnight ,
     WhiteBishop,
     WhiteRook,
     WhiteQueen,
@@ -68,7 +74,26 @@ pub enum Piece {
     BlackKing,
 }
 
-#[derive(Clone, Copy)]
+impl Into<char> for Piece {
+    fn into(self) -> char {
+        match self {
+            Self::WhitePawn => 'p',
+            Self::WhiteKnight => 'n',
+            Self::WhiteBishop => 'b',
+            Self::WhiteRook => 'r',
+            Self::WhiteQueen => 'q',
+            Self::WhiteKing => 'k',
+            Self::BlackPawn => 'P',
+            Self::BlackKnight => 'N',
+            Self::BlackBishop => 'B',
+            Self::BlackRook => 'R',
+            Self::BlackQueen => 'Q',
+            Self::BlackKing => 'K',
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Square {
     A1, B1, C1, D1, E1, F1, G1, H1,
     A2, B2, C2, D2, E2, F2, G2, H2,
@@ -91,9 +116,21 @@ pub const SQUARES: [Square; 64] = [
     Square::A8, Square::B8, Square::C8, Square::D8, Square::E8, Square::F8, Square::G8, Square::H8, 
 ];
 
-impl Square {
-    pub fn get_array() -> [Square; 64] {
+impl EnumToArray<Square, 64> for Square {
+    fn array() -> [Square; 64] {
         SQUARES
+    }
+}
+
+impl TryFrom<usize> for Square {
+    type Error = SquareIndexError;
+    
+    fn try_from(value: usize) -> Result<Self, Self::Error> {
+        if let Some(sq) = SQUARES.get(value) {
+            Ok(*sq)
+        } else {
+            Err(SquareIndexError::new(value, "Square out of range!"))
+        }
     }
 }
 
@@ -103,34 +140,115 @@ impl Into<Bitboard> for Square {
     }
 }
 
-fn get_bit_index(b: u64) -> usize {
-    // confirm only one bit set
-    for sh in 0..=64 {
-        if b & (0x1 << sh) != 0x0 { return sh }
-    }
-    panic!()
-}
-
-fn get_square(bb: Bitboard) -> Square {
-    let idx = get_bit_index(bb.into());
-    if let Some(sq) = SQUARES.get(idx) {
-        *sq
-    } else {
-        panic!()
-    }
-}
-
 impl Square {
     pub fn new(f: File, r: Rank) -> Self {
         let fbb: Bitboard = f.into();
         let rbb: Bitboard = r.into();
-        get_square(fbb & rbb)
+        let sq: Vec<Square> = (fbb & rbb).into();
+        assert_eq!(sq.len(), 1);
+        sq[0]
     }
 
-    // calculate Manhattan distance
-    pub fn distance(&self, other: Square) -> usize {
-
-        1
+    pub fn rank(&self) -> Rank {
+        let pos = *self as usize;
+        let rank_pos = pos >> 3;
+        *Rank::array().get(rank_pos).unwrap()
     }
+
+    pub fn file(&self) -> File {
+        let pos = *self as usize;
+        let file_pos = pos & 7; 
+        *File::array().get(file_pos).unwrap()
+    }
+
 }
 
+pub enum Direction {
+    North = 1,
+    NorthEast = 9,
+    SouthEast = 7,
+    South = -1,
+    SouthWest = -9,
+    West = -8,
+    NorthWest = -7,
+}
+
+#[cfg(test)]
+mod tests {
+
+    use super::*;
+    use crate::board::utils::set_bits;
+
+    #[test]
+    fn test_try_from_usize_for_sq() {
+        let sq_b1 = Square::try_from(1).unwrap();
+        assert_eq!(sq_b1, Square::B1);
+
+        let no_sq = Square::try_from(65);
+        assert!(no_sq.is_err());   
+    }
+
+    #[test]
+    fn test_file_to_bitboard() {
+        let bb: Bitboard = File::B.into();
+        let expected_bit_idx: Vec<usize> = vec![
+            Square::B1, Square::B2, Square::B3, Square::B4,
+            Square::B5, Square::B6, Square::B7, Square::B8
+        ].iter().map(|sq| *sq as usize).collect();
+        let set_bits = set_bits(bb.into());
+        assert_eq!(expected_bit_idx, set_bits);
+    }
+
+    #[test]
+    fn test_rank_to_bitboard() {
+        let bb: Bitboard = Rank::Rank5.into();
+        let expected_bit_idx: Vec<usize> = vec![
+            Square::A5, Square::B5, Square::C5, Square::D5,
+            Square::E5, Square::F5, Square::G5, Square::H5,
+        ].iter().map(|sq| *sq as usize).collect();
+        let set_bits = set_bits(bb.into());
+        assert_eq!(expected_bit_idx, set_bits);
+    }
+
+    #[test]
+    fn test_square_new() {
+        let f = File::C;
+        let r = Rank::Rank3;
+        let sq = Square::new(f, r);
+        assert_eq!(sq, Square::C3);
+    }
+
+    #[test]
+    fn test_square_file() {
+        let sq = Square::D4;
+        assert_eq!(sq.file(), File::D);
+    }
+
+    #[test]
+    fn test_square_rank() {
+        let sq = Square::F7;
+        assert_eq!(sq.rank(), Rank::Rank7);
+    }
+
+    #[test]
+    fn test_square_into_bitboard() {
+        let sq = Square::B1;
+        let sq_bb: Bitboard = sq.into();
+        assert_eq!(sq_bb, Bitboard(0b10));
+    }
+
+    #[test]
+    fn test_square_from_usize() {
+        let valid_idx = 10;
+        let res_valid = Square::try_from(valid_idx);
+        assert!(res_valid.is_ok());
+        if let Ok(sq) = res_valid {
+            assert_eq!(sq, Square::C2);
+        }
+
+        let invalid_idx = 100;
+        let res_invalid = Square::try_from(invalid_idx);
+        assert!(res_invalid.is_err());
+    }
+
+}
