@@ -1,28 +1,45 @@
 use std::convert::TryFrom;
 
-use crate::board::{Bitboard, error::SquareIndexError};
+use crate::board::{error::SquareIndexError, Bitboard};
 
 // using Little-Endian Rank File Mapping
 // @see https://www.chessprogramming.org/Square_Mapping_Considerations
 const FILE_A: u64 = 0x0101010101010101;
 const RANK_1: u64 = 0xFF;
-const A1_H8_DIAGONAL:u64 = 0x8040201008040201;
+const A1_H8_DIAGONAL: u64 = 0x8040201008040201;
 const H1_A1_DIAGONAL: u64 = 0x0102040810204080;
 
 pub trait EnumToArray<T, const N: usize> {
     fn array() -> [T; N];
 }
 
-pub enum Color {White, Black}
+pub enum Color {
+    White,
+    Black,
+}
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
 #[repr(usize)]
 pub enum File {
-    A, B, C, D, E, F, G, H
+    A,
+    B,
+    C,
+    D,
+    E,
+    F,
+    G,
+    H,
 }
 
 pub const FILES: [File; 8] = [
-    File::A, File::B, File::C, File::D, File::E, File::F, File::G, File::H
+    File::A,
+    File::B,
+    File::C,
+    File::D,
+    File::E,
+    File::F,
+    File::G,
+    File::H,
 ];
 
 impl EnumToArray<File, 8> for File {
@@ -40,11 +57,25 @@ impl Into<Bitboard> for File {
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
 #[repr(usize)]
 pub enum Rank {
-    Rank1 = 1, Rank2, Rank3, Rank4, Rank5, Rank6, Rank7, Rank8
+    Rank1 = 1,
+    Rank2,
+    Rank3,
+    Rank4,
+    Rank5,
+    Rank6,
+    Rank7,
+    Rank8,
 }
 
 pub const RANKS: [Rank; 8] = [
-    Rank::Rank1, Rank::Rank2, Rank::Rank3, Rank::Rank4, Rank::Rank5, Rank::Rank6, Rank::Rank7, Rank::Rank8,
+    Rank::Rank1,
+    Rank::Rank2,
+    Rank::Rank3,
+    Rank::Rank4,
+    Rank::Rank5,
+    Rank::Rank6,
+    Rank::Rank7,
+    Rank::Rank8,
 ];
 
 impl EnumToArray<Rank, 8> for Rank {
@@ -61,7 +92,7 @@ impl Into<Bitboard> for Rank {
 
 pub enum Piece {
     WhitePawn,
-    WhiteKnight ,
+    WhiteKnight,
     WhiteBishop,
     WhiteRook,
     WhiteQueen,
@@ -95,25 +126,137 @@ impl Into<char> for Piece {
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Square {
-    A1, B1, C1, D1, E1, F1, G1, H1,
-    A2, B2, C2, D2, E2, F2, G2, H2,
-    A3, B3, C3, D3, E3, F3, G3, H3,
-    A4, B4, C4, D4, E4, F4, G4, H4,
-    A5, B5, C5, D5, E5, F5, G5, H5,
-    A6, B6, C6, D6, E6, F6, G6, H6,
-    A7, B7, C7, D7, E7, F7, G7, H7,
-    A8, B8, C8, D8, E8, F8, G8, H8, 
+    A1,
+    B1,
+    C1,
+    D1,
+    E1,
+    F1,
+    G1,
+    H1,
+    A2,
+    B2,
+    C2,
+    D2,
+    E2,
+    F2,
+    G2,
+    H2,
+    A3,
+    B3,
+    C3,
+    D3,
+    E3,
+    F3,
+    G3,
+    H3,
+    A4,
+    B4,
+    C4,
+    D4,
+    E4,
+    F4,
+    G4,
+    H4,
+    A5,
+    B5,
+    C5,
+    D5,
+    E5,
+    F5,
+    G5,
+    H5,
+    A6,
+    B6,
+    C6,
+    D6,
+    E6,
+    F6,
+    G6,
+    H6,
+    A7,
+    B7,
+    C7,
+    D7,
+    E7,
+    F7,
+    G7,
+    H7,
+    A8,
+    B8,
+    C8,
+    D8,
+    E8,
+    F8,
+    G8,
+    H8,
 }
 
 pub const SQUARES: [Square; 64] = [
-    Square::A1, Square::B1, Square::C1, Square::D1, Square::E1, Square::F1, Square::G1, Square::H1,
-    Square::A2, Square::B2, Square::C2, Square::D2, Square::E2, Square::F2, Square::G2, Square::H2,
-    Square::A3, Square::B3, Square::C3, Square::D3, Square::E3, Square::F3, Square::G3, Square::H3,
-    Square::A4, Square::B4, Square::C4, Square::D4, Square::E4, Square::F4, Square::G4, Square::H4,
-    Square::A5, Square::B5, Square::C5, Square::D5, Square::E5, Square::F5, Square::G5, Square::H5,
-    Square::A6, Square::B6, Square::C6, Square::D6, Square::E6, Square::F6, Square::G6, Square::H6,
-    Square::A7, Square::B7, Square::C7, Square::D7, Square::E7, Square::F7, Square::G7, Square::H7,
-    Square::A8, Square::B8, Square::C8, Square::D8, Square::E8, Square::F8, Square::G8, Square::H8, 
+    Square::A1,
+    Square::B1,
+    Square::C1,
+    Square::D1,
+    Square::E1,
+    Square::F1,
+    Square::G1,
+    Square::H1,
+    Square::A2,
+    Square::B2,
+    Square::C2,
+    Square::D2,
+    Square::E2,
+    Square::F2,
+    Square::G2,
+    Square::H2,
+    Square::A3,
+    Square::B3,
+    Square::C3,
+    Square::D3,
+    Square::E3,
+    Square::F3,
+    Square::G3,
+    Square::H3,
+    Square::A4,
+    Square::B4,
+    Square::C4,
+    Square::D4,
+    Square::E4,
+    Square::F4,
+    Square::G4,
+    Square::H4,
+    Square::A5,
+    Square::B5,
+    Square::C5,
+    Square::D5,
+    Square::E5,
+    Square::F5,
+    Square::G5,
+    Square::H5,
+    Square::A6,
+    Square::B6,
+    Square::C6,
+    Square::D6,
+    Square::E6,
+    Square::F6,
+    Square::G6,
+    Square::H6,
+    Square::A7,
+    Square::B7,
+    Square::C7,
+    Square::D7,
+    Square::E7,
+    Square::F7,
+    Square::G7,
+    Square::H7,
+    Square::A8,
+    Square::B8,
+    Square::C8,
+    Square::D8,
+    Square::E8,
+    Square::F8,
+    Square::G8,
+    Square::H8,
 ];
 
 impl EnumToArray<Square, 64> for Square {
@@ -124,7 +267,7 @@ impl EnumToArray<Square, 64> for Square {
 
 impl TryFrom<usize> for Square {
     type Error = SquareIndexError;
-    
+
     fn try_from(value: usize) -> Result<Self, Self::Error> {
         if let Some(sq) = SQUARES.get(value) {
             Ok(*sq)
@@ -157,10 +300,9 @@ impl Square {
 
     pub fn file(&self) -> File {
         let pos = *self as usize;
-        let file_pos = pos & 7; 
+        let file_pos = pos & 7;
         *File::array().get(file_pos).unwrap()
     }
-
 }
 
 pub enum Direction {
@@ -185,16 +327,25 @@ mod tests {
         assert_eq!(sq_b1, Square::B1);
 
         let no_sq = Square::try_from(65);
-        assert!(no_sq.is_err());   
+        assert!(no_sq.is_err());
     }
 
     #[test]
     fn test_file_to_bitboard() {
         let bb: Bitboard = File::B.into();
         let expected_bit_idx: Vec<usize> = vec![
-            Square::B1, Square::B2, Square::B3, Square::B4,
-            Square::B5, Square::B6, Square::B7, Square::B8
-        ].iter().map(|sq| *sq as usize).collect();
+            Square::B1,
+            Square::B2,
+            Square::B3,
+            Square::B4,
+            Square::B5,
+            Square::B6,
+            Square::B7,
+            Square::B8,
+        ]
+        .iter()
+        .map(|sq| *sq as usize)
+        .collect();
         let set_bits = set_bits(bb.into());
         assert_eq!(expected_bit_idx, set_bits);
     }
@@ -203,9 +354,18 @@ mod tests {
     fn test_rank_to_bitboard() {
         let bb: Bitboard = Rank::Rank5.into();
         let expected_bit_idx: Vec<usize> = vec![
-            Square::A5, Square::B5, Square::C5, Square::D5,
-            Square::E5, Square::F5, Square::G5, Square::H5,
-        ].iter().map(|sq| *sq as usize).collect();
+            Square::A5,
+            Square::B5,
+            Square::C5,
+            Square::D5,
+            Square::E5,
+            Square::F5,
+            Square::G5,
+            Square::H5,
+        ]
+        .iter()
+        .map(|sq| *sq as usize)
+        .collect();
         let set_bits = set_bits(bb.into());
         assert_eq!(expected_bit_idx, set_bits);
     }
@@ -250,5 +410,4 @@ mod tests {
         let res_invalid = Square::try_from(invalid_idx);
         assert!(res_invalid.is_err());
     }
-
 }
