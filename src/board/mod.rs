@@ -5,9 +5,9 @@ mod error;
 mod types;
 mod utils;
 
-use bitboard::Bitboard;
-use types::{Color, Square, File, Rank};
 use crate::board::types::EnumToArray;
+use bitboard::Bitboard;
+use types::{Color, File, Rank, Square};
 
 pub struct BoardState {
     board: Board,
@@ -74,7 +74,6 @@ impl Default for Board {
     }
 }
 
-
 impl Debug for Board {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let line_br = "+---+---+---+---+---+---+---+---+\n";
@@ -93,7 +92,6 @@ impl Debug for Board {
                     "|   "
                 };
                 f.write_str(s)?;
-                
             }
             f.write_str("|\n")?;
             f.write_str(line_br)?;
@@ -103,22 +101,21 @@ impl Debug for Board {
     }
 }
 
-
 #[cfg(test)]
 mod tests {
 
     use super::*;
-    
+
     fn rm_whitespace(s: impl ToString) -> String {
         let mut out = s.to_string();
         out.retain(|c| !c.is_whitespace());
         out
     }
 
-
     #[test]
     fn test_default_board() {
-        let default_board_fmt = rm_whitespace("
+        let default_board_fmt = rm_whitespace(
+            "
         +---+---+---+---+---+---+---+---+        
       8 | b | b | b | b | b | b | b | b |
         +---+---+---+---+---+---+---+---+
@@ -137,8 +134,11 @@ mod tests {
       1 | w | w | w | w | w | w | w | w |
         +---+---+---+---+---+---+---+---+
           a   b   c   d   e   f   g   h      
-      ");
-        assert_eq!(rm_whitespace(format!("{:?}", Board::default())), default_board_fmt);
+      ",
+        );
+        assert_eq!(
+            rm_whitespace(format!("{:?}", Board::default())),
+            default_board_fmt
+        );
     }
-
 }
