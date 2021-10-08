@@ -15,6 +15,9 @@ pub struct BoardState {
     en_passant: Option<Square>,
     fifth_move_counter: usize,
     ply: usize,
+    history_ply: usize,
+    position_key: u64,        // unique identifier of the position
+    castling_permissions: u8, // bits = [ wK, wQ, bK, bQ ]
 }
 
 struct Board {
@@ -80,16 +83,34 @@ impl Debug for Board {
         f.write_str(line_br)?;
         for rank in Rank::array().iter().rev() {
             f.write_str(format!("{} ", *rank as usize).as_str())?;
-            for file in File::array().iter().rev() {
+            for file in File::array().iter() {
                 let sq: Bitboard = Square::new(*file, *rank).into();
-                let white_bb = self.pieces(Color::White);
-                let black_bb = self.pieces(Color::Black);
-                let s = if (white_bb & sq).0 != 0x0 {
-                    "| w "
-                } else if (black_bb & sq).0 != 0x0 {
-                    "| b "
+                let s = if (self.white_bishops & sq).0 != 0x0 {
+                    " | b "
+                } else if (self.white_king & sq).0 != 0x0 {
+                    " | k "
+                } else if (self.white_knights & sq).0 != 0x0 {
+                    " | n "
+                } else if (self.white_queens & sq).0 != 0x0 {
+                    " | q "
+                } else if (self.white_rooks & sq).0 != 0x0 {
+                    " | r "
+                } else if (self.white_pawns & sq).0 != 0x0 {
+                    " | p "
+                } else if (self.black_king & sq).0 != 0x0 {
+                    " | K "
+                } else if (self.black_knights & sq).0 != 0x0 {
+                    " | N "
+                } else if (self.black_bishops & sq).0 != 0x0 {
+                    " | B "
+                } else if (self.black_pawns & sq).0 != 0x0 {
+                    " | P "
+                } else if (self.black_queens & sq).0 != 0x0 {
+                    " | Q "
+                } else if (self.black_rooks & sq).0 != 0x0 {
+                    " | R "
                 } else {
-                    "|   "
+                    "|  "
                 };
                 f.write_str(s)?;
             }
@@ -117,9 +138,9 @@ mod tests {
         let default_board_fmt = rm_whitespace(
             "
         +---+---+---+---+---+---+---+---+        
-      8 | b | b | b | b | b | b | b | b |
+      8 | R | N | B | Q | K | B | N | R |
         +---+---+---+---+---+---+---+---+
-      7 | b | b | b | b | b | b | b | b |
+      7 | P | P | P | P | P | P | P | P |
         +---+---+---+---+---+---+---+---+
       6 |   |   |   |   |   |   |   |   |
         +---+---+---+---+---+---+---+---+
@@ -129,9 +150,9 @@ mod tests {
         +---+---+---+---+---+---+---+---+
       3 |   |   |   |   |   |   |   |   |
         +---+---+---+---+---+---+---+---+
-      2 | w | w | w | w | w | w | w | w |
+      2 | p | p | p | p | p | p | p | p |
         +---+---+---+---+---+---+---+---+
-      1 | w | w | w | w | w | w | w | w |
+      1 | r | n | b | q | k | b | n | r |
         +---+---+---+---+---+---+---+---+
           a   b   c   d   e   f   g   h      
       ",

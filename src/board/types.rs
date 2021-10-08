@@ -315,6 +315,15 @@ pub enum Direction {
     NorthWest = -7,
 }
 
+// four bits to represent castling
+// so 2 ^ {0..3}
+pub enum CastlingRight {
+    WhiteKing = 1,
+    WhiteQueen = 2,
+    BlackKing = 4,
+    BlackQueen = 8,
+}
+
 #[cfg(test)]
 mod tests {
 
