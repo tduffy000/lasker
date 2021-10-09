@@ -48,11 +48,11 @@ impl Into<Vec<Square>> for Bitboard {
 }
 
 impl Bitboard {
-    fn empty() -> Self {
+    pub fn empty() -> Self {
         Bitboard(0x0)
     }
 
-    fn universe() -> Self {
+    pub fn universe() -> Self {
         Bitboard(!0x0)
     }
 

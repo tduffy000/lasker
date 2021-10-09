@@ -13,6 +13,7 @@ pub trait EnumToArray<T, const N: usize> {
     fn array() -> [T; N];
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Color {
     White,
     Black,
@@ -313,6 +314,15 @@ pub enum Direction {
     SouthWest = -9,
     West = -8,
     NorthWest = -7,
+}
+
+// four bits to represent castling
+// so 2 ^ {0..3}
+pub enum CastlingRight {
+    WhiteKing = 1,
+    WhiteQueen = 2,
+    BlackKing = 4,
+    BlackQueen = 8,
 }
 
 #[cfg(test)]
