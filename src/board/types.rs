@@ -13,6 +13,7 @@ pub trait EnumToArray<T, const N: usize> {
     fn array() -> [T; N];
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Color {
     White,
     Black,

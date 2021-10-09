@@ -1,23 +1,46 @@
 use std::fmt::Debug;
 
+pub mod key;
+
 mod bitboard;
 mod error;
 mod types;
 mod utils;
 
-use crate::board::types::EnumToArray;
 use bitboard::Bitboard;
-use types::{Color, File, Rank, Square};
+use error::{NoPieceOnSquareError, SquareTakenError};
+use types::{Color, EnumToArray, File, Piece, Rank, Square};
 
 pub struct BoardState {
     board: Board,
     side_to_move: Color,
     en_passant: Option<Square>,
-    fifth_move_counter: usize,
+    fifty_move_counter: usize,
     ply: usize,
     history_ply: usize,
-    position_key: u64,        // unique identifier of the position
+    position_key: u64,
     castling_permissions: u8, // bits = [ wK, wQ, bK, bQ ]
+}
+
+impl BoardState {
+    pub fn print_board(&self) {
+        print!("{:?}", self.board)
+    }
+}
+
+impl Default for BoardState {
+    fn default() -> Self {
+        BoardState {
+            board: Board::default(),
+            side_to_move: Color::White,
+            en_passant: None,
+            fifty_move_counter: 0,
+            ply: 0,
+            history_ply: 0,
+            position_key: 0,
+            castling_permissions: 0b1111,
+        }
+    }
 }
 
 struct Board {
@@ -36,6 +59,85 @@ struct Board {
 }
 
 impl Board {
+    fn empty() -> Self {
+        Board {
+            white_pawns: Bitboard::empty(),
+            white_knights: Bitboard::empty(),
+            white_bishops: Bitboard::empty(),
+            white_rooks: Bitboard::empty(),
+            white_queens: Bitboard::empty(),
+            white_king: Bitboard::empty(),
+            black_pawns: Bitboard::empty(),
+            black_bishops: Bitboard::empty(),
+            black_knights: Bitboard::empty(),
+            black_rooks: Bitboard::empty(),
+            black_queens: Bitboard::empty(),
+            black_king: Bitboard::empty(),
+        }
+    }
+
+    fn taken(&self) -> Bitboard {
+        self.white_pawns
+            | self.white_knights
+            | self.white_bishops
+            | self.white_rooks
+            | self.white_queens
+            | self.white_king
+            | self.black_pawns
+            | self.black_bishops
+            | self.black_knights
+            | self.black_rooks
+            | self.black_queens
+            | self.black_king
+    }
+
+    fn add_piece(&mut self, piece: Piece, sq: Square) -> Result<(), SquareTakenError> {
+        let sq_bb: Bitboard = sq.into();
+        if (self.taken() & sq_bb).0 != 0x0 {
+            Err(SquareTakenError::new(sq))
+        } else {
+            match piece {
+                Piece::WhitePawn => self.white_pawns |= sq_bb,
+                Piece::WhiteKnight => self.white_knights |= sq_bb,
+                Piece::WhiteBishop => self.white_bishops |= sq_bb,
+                Piece::WhiteRook => self.white_rooks |= sq_bb,
+                Piece::WhiteQueen => self.white_queens |= sq_bb,
+                Piece::WhiteKing => self.white_king |= sq_bb, // should validate if a king exists?
+                Piece::BlackPawn => self.black_pawns |= sq_bb,
+                Piece::BlackKnight => self.black_knights |= sq_bb,
+                Piece::BlackBishop => self.black_bishops |= sq_bb,
+                Piece::BlackRook => self.black_rooks |= sq_bb,
+                Piece::BlackQueen => self.black_queens |= sq_bb,
+                Piece::BlackKing => self.black_king |= sq_bb,
+            }
+            Ok(())
+        }
+    }
+
+    // do we really need to specify the piece here?
+    fn remove_piece(&mut self, piece: Piece, sq: Square) -> Result<(), NoPieceOnSquareError> {
+        let sq_bb: Bitboard = sq.into();
+        if (self.taken() & sq_bb).0 == 0x0 {
+            Err(NoPieceOnSquareError::new(sq))
+        } else {
+            match piece {
+                Piece::WhitePawn => self.white_pawns ^= sq_bb,
+                Piece::WhiteKnight => self.white_knights ^= sq_bb,
+                Piece::WhiteBishop => self.white_bishops ^= sq_bb,
+                Piece::WhiteRook => self.white_rooks ^= sq_bb,
+                Piece::WhiteQueen => self.white_queens ^= sq_bb,
+                Piece::WhiteKing => self.white_king ^= sq_bb,
+                Piece::BlackPawn => self.black_pawns ^= sq_bb,
+                Piece::BlackKnight => self.black_knights ^= sq_bb,
+                Piece::BlackBishop => self.black_bishops ^= sq_bb,
+                Piece::BlackRook => self.black_rooks ^= sq_bb,
+                Piece::BlackQueen => self.black_queens ^= sq_bb,
+                Piece::BlackKing => self.black_king ^= sq_bb,
+            }
+            Ok(())
+        }
+    }
+
     fn pieces(&self, color: Color) -> Bitboard {
         match color {
             Color::White => {
@@ -54,6 +156,37 @@ impl Board {
                     | self.black_queens
                     | self.black_king
             }
+        }
+    }
+
+    fn piece(&self, sq: &Square) -> Option<Piece> {
+        let sq_bb: Bitboard = (*sq).into();
+        if (sq_bb & self.white_pawns).0 != 0x0 {
+            Some(Piece::WhitePawn)
+        } else if (sq_bb & self.white_knights).0 != 0x0 {
+            Some(Piece::WhiteKnight)
+        } else if (sq_bb & self.white_bishops).0 != 0x0 {
+            Some(Piece::WhiteBishop)
+        } else if (sq_bb & self.white_rooks).0 != 0x0 {
+            Some(Piece::WhiteRook)
+        } else if (sq_bb & self.white_queens).0 != 0x0 {
+            Some(Piece::WhiteQueen)
+        } else if (sq_bb & self.white_king).0 != 0x0 {
+            Some(Piece::WhiteKing)
+        } else if (sq_bb & self.black_pawns).0 != 0x0 {
+            Some(Piece::BlackPawn)
+        } else if (sq_bb & self.black_knights).0 != 0x0 {
+            Some(Piece::BlackKnight)
+        } else if (sq_bb & self.black_bishops).0 != 0x0 {
+            Some(Piece::BlackBishop)
+        } else if (sq_bb & self.black_rooks).0 != 0x0 {
+            Some(Piece::BlackRook)
+        } else if (sq_bb & self.black_queens).0 != 0x0 {
+            Some(Piece::BlackQueen)
+        } else if (sq_bb & self.black_king).0 != 0x0 {
+            Some(Piece::BlackKing)
+        } else {
+            None
         }
     }
 }
@@ -162,4 +295,16 @@ mod tests {
             default_board_fmt
         );
     }
+
+    #[test]
+    fn test_empty_board() {}
+
+    #[test]
+    fn test_taken() {}
+
+    #[test]
+    fn test_add_piece() {}
+
+    #[test]
+    fn test_remove_piece() {}
 }
