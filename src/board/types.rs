@@ -5,6 +5,8 @@ use crate::board::{
     Bitboard,
 };
 
+use super::error::{FENParsingError, InvalidCastlingRightCharError};
+
 // using Little-Endian Rank File Mapping
 // @see https://www.chessprogramming.org/Square_Mapping_Considerations
 const FILE_A: u64 = 0x0101010101010101;
@@ -343,11 +345,42 @@ pub enum Direction {
 
 // four bits to represent castling
 // so 2 ^ {0..3}
+#[repr(u8)]
 pub enum CastlingRight {
     WhiteKing = 1,
     WhiteQueen = 2,
     BlackKing = 4,
     BlackQueen = 8,
+}
+
+impl TryFrom<char> for CastlingRight {
+    type Error = InvalidCastlingRightCharError;
+
+    fn try_from(value: char) -> Result<Self, Self::Error> {
+        match value {
+            'K' => Ok(CastlingRight::WhiteKing),
+            'Q' => Ok(CastlingRight::WhiteQueen),
+            'k' => Ok(CastlingRight::BlackKing),
+            'q' => Ok(CastlingRight::BlackQueen),
+            ch => Err(InvalidCastlingRightCharError::new(ch)),
+        }
+    }
+}
+
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
+pub struct CastlingRights(pub u8);
+
+// TODO: from_fen should be a trait
+impl CastlingRights {
+    pub fn from_fen(fen: impl ToString) -> Result<Self, FENParsingError> {
+        let mut rights = CastlingRights(0x0);
+
+        for ch in fen.to_string().chars() {
+            rights.0 |= CastlingRight::try_from(ch)? as u8;
+        }
+
+        Ok(rights)
+    }
 }
 
 #[cfg(test)]
@@ -444,5 +477,21 @@ mod tests {
         let invalid_idx = 100;
         let res_invalid = Square::try_from(invalid_idx);
         assert!(res_invalid.is_err());
+    }
+
+    #[test]
+    fn test_castling_rights_from_fen() {
+        let white_queenside = "Q";
+        let all = "KQkq";
+
+        let empty_rights = CastlingRights::from_fen("").unwrap();
+        let wq = CastlingRights::from_fen(white_queenside).unwrap();
+        let all_rights = CastlingRights::from_fen(all).unwrap();
+
+        assert_eq!(empty_rights.0, 0b0);
+        assert_eq!(wq.0, CastlingRight::WhiteQueen as u8);
+        assert_eq!(all_rights.0, 0b1111);
+
+        assert!(CastlingRights::from_fen("X").is_err());
     }
 }

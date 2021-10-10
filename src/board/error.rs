@@ -57,6 +57,17 @@ impl InvalidPieceCharError {
 }
 
 #[derive(Debug)]
+pub struct InvalidCastlingRightCharError {
+    ch: char,
+}
+
+impl InvalidCastlingRightCharError {
+    pub fn new(ch: char) -> Self {
+        InvalidCastlingRightCharError { ch }
+    }
+}
+
+#[derive(Debug)]
 pub struct FENParsingError {
     msg: String,
 }
@@ -77,6 +88,12 @@ impl From<SquareIndexError> for FENParsingError {
 
 impl From<InvalidPieceCharError> for FENParsingError {
     fn from(_: InvalidPieceCharError) -> Self {
+        FENParsingError::new("")
+    }
+}
+
+impl From<InvalidCastlingRightCharError> for FENParsingError {
+    fn from(_: InvalidCastlingRightCharError) -> Self {
         FENParsingError::new("")
     }
 }

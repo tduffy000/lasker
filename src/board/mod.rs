@@ -9,8 +9,9 @@ mod utils;
 
 use bitboard::Bitboard;
 use error::{FENParsingError, NoPieceOnSquareError, SquareTakenError};
-use types::{Color, EnumToArray, File, Piece, Rank, Square};
+use types::{CastlingRights, Color, EnumToArray, File, Piece, Rank, Square};
 
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct BoardState {
     board: Board,
     side_to_move: Color,
@@ -19,12 +20,42 @@ pub struct BoardState {
     ply: usize,
     history_ply: usize,
     position_key: u64,
-    castling_permissions: u8, // bits = [ wK, wQ, bK, bQ ]
+    castling_permissions: CastlingRights, // bits = [ wK, wQ, bK, bQ ]
 }
 
 impl BoardState {
     pub fn print_board(&self) {
         print!("{:?}", self.board)
+    }
+
+    pub fn from_fen(fen: impl ToString) -> Result<BoardState, FENParsingError> {
+        let mut state = BoardState::default();
+
+        let n_fields = 6;
+        let fen_str = fen.to_string();
+        if fen_str.split(' ').count() != n_fields {
+            return Err(FENParsingError::new(" "));
+        }
+        let fields: Vec<String> = fen_str.split(' ').map(|s| s.to_string()).collect();
+
+        // board
+        state.board = Board::from_fen(&fields[0])?;
+
+        // piece to move
+        if fields[1] == "b".to_string() {
+            state.side_to_move = Color::Black
+        }
+
+        // castling
+        state.castling_permissions = CastlingRights::from_fen(&fields[2])?;
+
+        // en passant
+
+        // half move clock
+
+        // full move number
+
+        Ok(state)
     }
 }
 
@@ -38,7 +69,7 @@ impl Default for BoardState {
             ply: 0,
             history_ply: 0,
             position_key: 0,
-            castling_permissions: 0b1111,
+            castling_permissions: CastlingRights(0b1111),
         }
     }
 }
@@ -351,9 +382,16 @@ mod tests {
     }
 
     #[test]
-    fn test_from_fen() {
+    fn test_board_from_fen() {
         let start_pos = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR";
         let parsed_board = Board::from_fen(start_pos).unwrap();
         assert_eq!(parsed_board, Board::default());
+    }
+
+    #[test]
+    fn test_board_state_from_fen() {
+        let start_state = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+        let parsed_state = BoardState::from_fen(start_state).unwrap();
+        assert_eq!(parsed_state, BoardState::default());
     }
 }

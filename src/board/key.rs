@@ -1,6 +1,6 @@
 use rand::random;
 
-use crate::board::types::{Color, EnumToArray, Square};
+use crate::board::types::{CastlingRights, Color, EnumToArray, Square};
 use crate::board::BoardState;
 
 pub struct PositionKeyGenerator {
@@ -58,7 +58,7 @@ impl PositionKeyGenerator {
         }
 
         // castling
-        key ^= self.castling_permission_hashes[state.castling_permissions as usize];
+        key ^= self.castling_permission_hashes[state.castling_permissions.0 as usize];
 
         // en passant
         if let Some(sq) = state.en_passant {
@@ -100,9 +100,9 @@ mod tests {
         assert_eq!(base_key, key_gen.hash_board(&state));
 
         // switch castling rights (default == 0b1111)
-        state.castling_permissions = 0b1010;
+        state.castling_permissions = CastlingRights(0b1010);
         assert_ne!(base_key, key_gen.hash_board(&state));
-        state.castling_permissions = 0b1111;
+        state.castling_permissions = CastlingRights(0b1111);
         assert_eq!(base_key, key_gen.hash_board(&state));
 
         // add a piece

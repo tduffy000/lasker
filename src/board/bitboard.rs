@@ -65,6 +65,9 @@ impl Bitboard {
     }
 }
 
+// TODO: we could make these a macro b/c
+// castling rights uses them as well
+
 impl BitAnd for Bitboard {
     type Output = Self;
 
