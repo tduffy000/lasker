@@ -53,8 +53,15 @@ impl BoardState {
         state.en_passant = Square::from_fen(&fields[3])?;
 
         // half move clock
+        match fields[4].parse::<usize>() {
+            Ok(num) => {
+                state.history_ply = num;
+                state.ply = num;
+            }
+            Err(_) => return Err(FENParsingError::new("")),
+        }
 
-        // full move number
+        // full move number discarded
 
         Ok(state)
     }
