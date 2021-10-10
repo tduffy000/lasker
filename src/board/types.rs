@@ -1,7 +1,7 @@
 use std::convert::TryFrom;
 
 use crate::board::{
-    error::{InvalidPieceCharError, SquareIndexError},
+    error::{FENParsingError, InvalidCharError, SquareIndexError},
     Bitboard,
 };
 
@@ -11,6 +11,7 @@ const FILE_A: u64 = 0x0101010101010101;
 const RANK_1: u64 = 0xFF;
 const A1_H8_DIAGONAL: u64 = 0x8040201008040201;
 const H1_A1_DIAGONAL: u64 = 0x0102040810204080;
+const FEN_BLANK: &str = "-";
 
 pub trait EnumToArray<T, const N: usize> {
     fn array() -> [T; N];
@@ -58,6 +59,18 @@ impl Into<Bitboard> for File {
     }
 }
 
+impl TryFrom<char> for File {
+    type Error = InvalidCharError;
+
+    fn try_from(value: char) -> Result<Self, Self::Error> {
+        let alpha = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
+        match alpha.iter().position(|&el| el == value) {
+            Some(idx) => Ok(File::array()[idx]),
+            None => Err(InvalidCharError::new(value)),
+        }
+    }
+}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
 #[repr(usize)]
 pub enum Rank {
@@ -91,6 +104,23 @@ impl EnumToArray<Rank, 8> for Rank {
 impl Into<Bitboard> for Rank {
     fn into(self) -> Bitboard {
         Bitboard(RANK_1 << (8 * (self as usize - 1)))
+    }
+}
+
+impl TryFrom<char> for Rank {
+    type Error = InvalidCharError;
+
+    fn try_from(value: char) -> Result<Self, Self::Error> {
+        if let Some(mut digit) = value.to_digit(10) {
+            digit -= 1;
+            if digit > 8 {
+                Err(InvalidCharError::new(value))
+            } else {
+                Ok(Rank::array()[digit as usize])
+            }
+        } else {
+            Err(InvalidCharError::new(value))
+        }
     }
 }
 
@@ -129,7 +159,7 @@ impl Into<char> for Piece {
 }
 
 impl TryFrom<char> for Piece {
-    type Error = InvalidPieceCharError;
+    type Error = InvalidCharError;
 
     fn try_from(value: char) -> Result<Self, Self::Error> {
         match value {
@@ -145,7 +175,7 @@ impl TryFrom<char> for Piece {
             'r' => Ok(Piece::BlackRook),
             'q' => Ok(Piece::BlackQueen),
             'k' => Ok(Piece::BlackKing),
-            c => Err(InvalidPieceCharError::new(c)),
+            c => Err(InvalidCharError::new(c)),
         }
     }
 }
@@ -329,6 +359,21 @@ impl Square {
         let file_pos = pos & 7;
         *File::array().get(file_pos).unwrap()
     }
+
+    pub fn from_fen(fen: impl ToString) -> Result<Option<Square>, InvalidCharError> {
+        if fen.to_string() == FEN_BLANK {
+            return Ok(None);
+        }
+        let chars: Vec<char> = fen.to_string().chars().collect();
+        if chars.len() != 2 {
+            return Err(InvalidCharError::new('x'));
+        }
+
+        let f = File::try_from(chars[0])?;
+        let r = Rank::try_from(chars[1])?;
+
+        Ok(Some(Square::new(f, r)))
+    }
 }
 
 pub enum Direction {
@@ -343,11 +388,45 @@ pub enum Direction {
 
 // four bits to represent castling
 // so 2 ^ {0..3}
+#[repr(u8)]
 pub enum CastlingRight {
     WhiteKing = 1,
     WhiteQueen = 2,
     BlackKing = 4,
     BlackQueen = 8,
+}
+
+impl TryFrom<char> for CastlingRight {
+    type Error = InvalidCharError;
+
+    fn try_from(value: char) -> Result<Self, Self::Error> {
+        match value {
+            'K' => Ok(CastlingRight::WhiteKing),
+            'Q' => Ok(CastlingRight::WhiteQueen),
+            'k' => Ok(CastlingRight::BlackKing),
+            'q' => Ok(CastlingRight::BlackQueen),
+            ch => Err(InvalidCharError::new(ch)),
+        }
+    }
+}
+
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
+pub struct CastlingRights(pub u8);
+
+// TODO: from_fen should be a trait
+impl CastlingRights {
+    pub fn from_fen(fen: impl ToString) -> Result<Self, FENParsingError> {
+        let mut rights = CastlingRights(0x0);
+        if fen.to_string() == FEN_BLANK {
+            return Ok(rights);
+        }
+
+        for ch in fen.to_string().chars() {
+            rights.0 |= CastlingRight::try_from(ch)? as u8;
+        }
+
+        Ok(rights)
+    }
 }
 
 #[cfg(test)]
@@ -363,6 +442,13 @@ mod tests {
 
         let no_sq = Square::try_from(65);
         assert!(no_sq.is_err());
+    }
+
+    #[test]
+    fn test_try_from_fen_sq() {
+        assert!(Square::from_fen("xx").is_err());
+        assert!(Square::from_fen("-").unwrap().is_none());
+        assert_eq!(Square::from_fen("a8").unwrap().unwrap(), Square::A8);
     }
 
     #[test]
@@ -386,6 +472,12 @@ mod tests {
     }
 
     #[test]
+    fn test_try_from_char_for_file() {
+        assert!(File::try_from('x').is_err());
+        assert_eq!(File::try_from('a').unwrap(), File::A);
+    }
+
+    #[test]
     fn test_rank_to_bitboard() {
         let bb: Bitboard = Rank::Rank5.into();
         let expected_bit_idx: Vec<usize> = vec![
@@ -403,6 +495,12 @@ mod tests {
         .collect();
         let set_bits = set_bits(bb.into());
         assert_eq!(expected_bit_idx, set_bits);
+    }
+
+    #[test]
+    fn test_try_from_char_for_rank() {
+        assert!(Rank::try_from('x').is_err());
+        assert_eq!(Rank::try_from('1').unwrap(), Rank::Rank1);
     }
 
     #[test]
@@ -444,5 +542,21 @@ mod tests {
         let invalid_idx = 100;
         let res_invalid = Square::try_from(invalid_idx);
         assert!(res_invalid.is_err());
+    }
+
+    #[test]
+    fn test_castling_rights_from_fen() {
+        let white_queenside = "Q";
+        let all = "KQkq";
+
+        let empty_rights = CastlingRights::from_fen("").unwrap();
+        let wq = CastlingRights::from_fen(white_queenside).unwrap();
+        let all_rights = CastlingRights::from_fen(all).unwrap();
+
+        assert_eq!(empty_rights.0, 0b0);
+        assert_eq!(wq.0, CastlingRight::WhiteQueen as u8);
+        assert_eq!(all_rights.0, 0b1111);
+
+        assert!(CastlingRights::from_fen("X").is_err());
     }
 }
