@@ -44,3 +44,39 @@ impl NoPieceOnSquareError {
         }
     }
 }
+
+#[derive(Debug)]
+pub struct InvalidPieceCharError {
+    ch: char,
+}
+
+impl InvalidPieceCharError {
+    pub fn new(ch: char) -> Self {
+        InvalidPieceCharError { ch }
+    }
+}
+
+#[derive(Debug)]
+pub struct FENParsingError {
+    msg: String,
+}
+
+impl FENParsingError {
+    pub fn new(msg: impl ToString) -> Self {
+        FENParsingError {
+            msg: msg.to_string(),
+        }
+    }
+}
+
+impl From<SquareIndexError> for FENParsingError {
+    fn from(_: SquareIndexError) -> Self {
+        FENParsingError::new("")
+    }
+}
+
+impl From<InvalidPieceCharError> for FENParsingError {
+    fn from(_: InvalidPieceCharError) -> Self {
+        FENParsingError::new("")
+    }
+}

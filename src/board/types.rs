@@ -1,6 +1,9 @@
 use std::convert::TryFrom;
 
-use crate::board::{error::SquareIndexError, Bitboard};
+use crate::board::{
+    error::{InvalidPieceCharError, SquareIndexError},
+    Bitboard,
+};
 
 // using Little-Endian Rank File Mapping
 // @see https://www.chessprogramming.org/Square_Mapping_Considerations
@@ -109,18 +112,40 @@ pub enum Piece {
 impl Into<char> for Piece {
     fn into(self) -> char {
         match self {
-            Self::WhitePawn => 'p',
-            Self::WhiteKnight => 'n',
-            Self::WhiteBishop => 'b',
-            Self::WhiteRook => 'r',
-            Self::WhiteQueen => 'q',
-            Self::WhiteKing => 'k',
-            Self::BlackPawn => 'P',
-            Self::BlackKnight => 'N',
-            Self::BlackBishop => 'B',
-            Self::BlackRook => 'R',
-            Self::BlackQueen => 'Q',
-            Self::BlackKing => 'K',
+            Self::WhitePawn => 'P',
+            Self::WhiteKnight => 'N',
+            Self::WhiteBishop => 'B',
+            Self::WhiteRook => 'R',
+            Self::WhiteQueen => 'Q',
+            Self::WhiteKing => 'K',
+            Self::BlackPawn => 'p',
+            Self::BlackKnight => 'n',
+            Self::BlackBishop => 'b',
+            Self::BlackRook => 'r',
+            Self::BlackQueen => 'q',
+            Self::BlackKing => 'k',
+        }
+    }
+}
+
+impl TryFrom<char> for Piece {
+    type Error = InvalidPieceCharError;
+
+    fn try_from(value: char) -> Result<Self, Self::Error> {
+        match value {
+            'P' => Ok(Piece::WhitePawn),
+            'N' => Ok(Piece::WhiteKnight),
+            'B' => Ok(Piece::WhiteBishop),
+            'R' => Ok(Piece::WhiteRook),
+            'Q' => Ok(Piece::WhiteQueen),
+            'K' => Ok(Piece::WhiteKing),
+            'p' => Ok(Piece::BlackPawn),
+            'n' => Ok(Piece::BlackKnight),
+            'b' => Ok(Piece::BlackBishop),
+            'r' => Ok(Piece::BlackRook),
+            'q' => Ok(Piece::BlackQueen),
+            'k' => Ok(Piece::BlackKing),
+            c => Err(InvalidPieceCharError::new(c)),
         }
     }
 }
