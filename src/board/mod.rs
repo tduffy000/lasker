@@ -1,4 +1,4 @@
-use std::fmt::Debug;
+use std::{convert::TryFrom, fmt::Debug};
 
 pub mod key;
 
@@ -8,7 +8,7 @@ mod types;
 mod utils;
 
 use bitboard::Bitboard;
-use error::{NoPieceOnSquareError, SquareTakenError};
+use error::{FENParsingError, NoPieceOnSquareError, SquareTakenError};
 use types::{Color, EnumToArray, File, Piece, Rank, Square};
 
 pub struct BoardState {
@@ -43,6 +43,7 @@ impl Default for BoardState {
     }
 }
 
+#[derive(PartialEq, Eq, PartialOrd, Ord)]
 struct Board {
     white_pawns: Bitboard,
     white_knights: Bitboard,
@@ -189,6 +190,28 @@ impl Board {
             None
         }
     }
+
+    fn from_fen(fen: impl ToString) -> Result<Board, FENParsingError> {
+        let mut board = Board::empty();
+        let line_break = '/';
+        let mut sq_counter: usize = 56; // start with A8 == 56
+
+        for ch in fen.to_string().chars() {
+            if ch == line_break {
+                sq_counter -= 8 * 2;
+                continue;
+            }
+            if let Some(d) = ch.to_digit(10) {
+                sq_counter += d as usize;
+            } else {
+                let piece = Piece::try_from(ch)?;
+                let sq = Square::try_from(sq_counter)?;
+                let _ = board.add_piece(piece, sq);
+                sq_counter += 1;
+            }
+        }
+        Ok(board)
+    }
 }
 
 impl Default for Board {
@@ -219,29 +242,29 @@ impl Debug for Board {
             for file in File::array().iter() {
                 let sq: Bitboard = Square::new(*file, *rank).into();
                 let s = if (self.white_bishops & sq).0 != 0x0 {
-                    " | b "
-                } else if (self.white_king & sq).0 != 0x0 {
-                    " | k "
-                } else if (self.white_knights & sq).0 != 0x0 {
-                    " | n "
-                } else if (self.white_queens & sq).0 != 0x0 {
-                    " | q "
-                } else if (self.white_rooks & sq).0 != 0x0 {
-                    " | r "
-                } else if (self.white_pawns & sq).0 != 0x0 {
-                    " | p "
-                } else if (self.black_king & sq).0 != 0x0 {
-                    " | K "
-                } else if (self.black_knights & sq).0 != 0x0 {
-                    " | N "
-                } else if (self.black_bishops & sq).0 != 0x0 {
                     " | B "
-                } else if (self.black_pawns & sq).0 != 0x0 {
-                    " | P "
-                } else if (self.black_queens & sq).0 != 0x0 {
+                } else if (self.white_king & sq).0 != 0x0 {
+                    " | K "
+                } else if (self.white_knights & sq).0 != 0x0 {
+                    " | N "
+                } else if (self.white_queens & sq).0 != 0x0 {
                     " | Q "
-                } else if (self.black_rooks & sq).0 != 0x0 {
+                } else if (self.white_rooks & sq).0 != 0x0 {
                     " | R "
+                } else if (self.white_pawns & sq).0 != 0x0 {
+                    " | P "
+                } else if (self.black_king & sq).0 != 0x0 {
+                    " | k "
+                } else if (self.black_knights & sq).0 != 0x0 {
+                    " | n "
+                } else if (self.black_bishops & sq).0 != 0x0 {
+                    " | b "
+                } else if (self.black_pawns & sq).0 != 0x0 {
+                    " | p "
+                } else if (self.black_queens & sq).0 != 0x0 {
+                    " | q "
+                } else if (self.black_rooks & sq).0 != 0x0 {
+                    " | r "
                 } else {
                     "|  "
                 };
@@ -271,9 +294,9 @@ mod tests {
         let default_board_fmt = rm_whitespace(
             "
         +---+---+---+---+---+---+---+---+        
-      8 | R | N | B | Q | K | B | N | R |
+      8 | r | n | b | q | k | b | n | r |
         +---+---+---+---+---+---+---+---+
-      7 | P | P | P | P | P | P | P | P |
+      7 | p | p | p | p | p | p | p | p |
         +---+---+---+---+---+---+---+---+
       6 |   |   |   |   |   |   |   |   |
         +---+---+---+---+---+---+---+---+
@@ -283,9 +306,9 @@ mod tests {
         +---+---+---+---+---+---+---+---+
       3 |   |   |   |   |   |   |   |   |
         +---+---+---+---+---+---+---+---+
-      2 | p | p | p | p | p | p | p | p |
+      2 | P | P | P | P | P | P | P | P |
         +---+---+---+---+---+---+---+---+
-      1 | r | n | b | q | k | b | n | r |
+      1 | R | N | B | Q | K | B | N | R |
         +---+---+---+---+---+---+---+---+
           a   b   c   d   e   f   g   h      
       ",
@@ -297,14 +320,40 @@ mod tests {
     }
 
     #[test]
-    fn test_empty_board() {}
+    fn test_empty_board() {
+        let board = Board::empty();
+        assert_eq!(board.taken(), Bitboard::empty());
+    }
 
     #[test]
-    fn test_taken() {}
+    fn test_taken() {
+        let mut board = Board::empty();
+        let _ = board.add_piece(Piece::BlackQueen, Square::B1);
+        assert_eq!(board.taken(), Bitboard(0b10));
+    }
 
     #[test]
-    fn test_add_piece() {}
+    fn test_add_piece() {
+        let mut board = Board::empty();
+        assert_eq!(board.taken(), Bitboard::empty());
+        let _ = board.add_piece(Piece::BlackQueen, Square::B1);
+        assert_eq!(board.taken(), Bitboard(0b10));
+    }
 
     #[test]
-    fn test_remove_piece() {}
+    fn test_remove_piece() {
+        let mut board = Board::empty();
+        let _ = board.add_piece(Piece::BlackQueen, Square::B1);
+        assert_eq!(board.taken(), Bitboard(0b10));
+        let _ = board.remove_piece(Piece::BlackQueen, Square::B1);
+        assert_eq!(board.taken(), Bitboard::empty());
+        assert!(board.remove_piece(Piece::BlackQueen, Square::B1).is_err());
+    }
+
+    #[test]
+    fn test_from_fen() {
+        let start_pos = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR";
+        let parsed_board = Board::from_fen(start_pos).unwrap();
+        assert_eq!(parsed_board, Board::default());
+    }
 }
