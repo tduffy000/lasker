@@ -1,6 +1,6 @@
 use rand::random;
 
-use crate::board::types::{CastlingRights, Color, EnumToArray, Square};
+use crate::board::types::{Color, EnumToArray, Square};
 use crate::board::BoardState;
 
 pub struct PositionKeyGenerator {
@@ -78,7 +78,7 @@ impl PositionKeyGenerator {
 mod tests {
 
     use super::*;
-    use crate::board::types::Piece;
+    use crate::board::types::{CastlingRights, Piece};
 
     #[test]
     fn test_hash_board() {

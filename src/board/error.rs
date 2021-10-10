@@ -46,24 +46,13 @@ impl NoPieceOnSquareError {
 }
 
 #[derive(Debug)]
-pub struct InvalidPieceCharError {
+pub struct InvalidCharError {
     ch: char,
 }
 
-impl InvalidPieceCharError {
+impl InvalidCharError {
     pub fn new(ch: char) -> Self {
-        InvalidPieceCharError { ch }
-    }
-}
-
-#[derive(Debug)]
-pub struct InvalidCastlingRightCharError {
-    ch: char,
-}
-
-impl InvalidCastlingRightCharError {
-    pub fn new(ch: char) -> Self {
-        InvalidCastlingRightCharError { ch }
+        InvalidCharError { ch }
     }
 }
 
@@ -80,20 +69,14 @@ impl FENParsingError {
     }
 }
 
+impl From<InvalidCharError> for FENParsingError {
+    fn from(_: InvalidCharError) -> Self {
+        FENParsingError::new("")
+    }
+}
+
 impl From<SquareIndexError> for FENParsingError {
     fn from(_: SquareIndexError) -> Self {
-        FENParsingError::new("")
-    }
-}
-
-impl From<InvalidPieceCharError> for FENParsingError {
-    fn from(_: InvalidPieceCharError) -> Self {
-        FENParsingError::new("")
-    }
-}
-
-impl From<InvalidCastlingRightCharError> for FENParsingError {
-    fn from(_: InvalidCastlingRightCharError) -> Self {
         FENParsingError::new("")
     }
 }

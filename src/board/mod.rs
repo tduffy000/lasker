@@ -50,6 +50,7 @@ impl BoardState {
         state.castling_permissions = CastlingRights::from_fen(&fields[2])?;
 
         // en passant
+        state.en_passant = Square::from_fen(&fields[3])?;
 
         // half move clock
 
