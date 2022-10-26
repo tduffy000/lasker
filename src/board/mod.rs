@@ -274,38 +274,38 @@ impl Default for Board {
 
 impl Debug for Board {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let line_br = "+---+---+---+---+---+---+---+---+\n";
+        let line_br = "  +---+---+---+---+---+---+---+---+\n";
         f.write_str(line_br)?;
         for rank in Rank::array().iter().rev() {
             f.write_str(format!("{} ", *rank as usize).as_str())?;
             for file in File::array().iter() {
                 let sq: Bitboard = Square::new(*file, *rank).into();
                 let s = if (self.white_bishops & sq).0 != 0x0 {
-                    " | B "
+                    "| B "
                 } else if (self.white_king & sq).0 != 0x0 {
-                    " | K "
+                    "| K "
                 } else if (self.white_knights & sq).0 != 0x0 {
-                    " | N "
+                    "| N "
                 } else if (self.white_queens & sq).0 != 0x0 {
-                    " | Q "
+                    "| Q "
                 } else if (self.white_rooks & sq).0 != 0x0 {
-                    " | R "
+                    "| R "
                 } else if (self.white_pawns & sq).0 != 0x0 {
-                    " | P "
+                    "| P "
                 } else if (self.black_king & sq).0 != 0x0 {
-                    " | k "
+                    "| k "
                 } else if (self.black_knights & sq).0 != 0x0 {
-                    " | n "
+                    "| n "
                 } else if (self.black_bishops & sq).0 != 0x0 {
-                    " | b "
+                    "| b "
                 } else if (self.black_pawns & sq).0 != 0x0 {
-                    " | p "
+                    "| p "
                 } else if (self.black_queens & sq).0 != 0x0 {
-                    " | q "
+                    "| q "
                 } else if (self.black_rooks & sq).0 != 0x0 {
-                    " | r "
+                    "| r "
                 } else {
-                    "|  "
+                    "|   "
                 };
                 f.write_str(s)?;
             }
