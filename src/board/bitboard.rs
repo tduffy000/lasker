@@ -56,7 +56,7 @@ impl Bitboard {
         Bitboard(!0x0)
     }
 
-    fn pop_count(&self) -> u32 {
+    pub fn pop_count(&self) -> u32 {
         self.0.count_ones()
     }
 

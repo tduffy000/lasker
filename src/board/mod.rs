@@ -3,6 +3,7 @@ use std::{convert::TryFrom, fmt::Debug};
 pub mod key;
 
 mod bitboard;
+mod constants;
 mod error;
 mod types;
 mod utils;
@@ -10,6 +11,8 @@ mod utils;
 use bitboard::Bitboard;
 use error::{FENParsingError, NoPieceOnSquareError, SquareTakenError};
 use types::{CastlingRights, Color, EnumToArray, File, Piece, Rank, Square};
+
+use self::constants::PIECE_VALUES;
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct BoardState {
@@ -195,6 +198,27 @@ impl Board {
                     | self.black_rooks
                     | self.black_queens
                     | self.black_king
+            }
+        }
+    }
+
+    fn material(&self, color: Color) -> u32 {
+        match color {
+            Color::White => {
+                self.white_pawns.pop_count() * PIECE_VALUES[Piece::WhitePawn as usize]
+                    + self.white_knights.pop_count() * PIECE_VALUES[Piece::WhiteKnight as usize]
+                    + self.white_bishops.pop_count() * PIECE_VALUES[Piece::WhiteBishop as usize]
+                    + self.white_rooks.pop_count() * PIECE_VALUES[Piece::WhiteRook as usize]
+                    + self.white_queens.pop_count() * PIECE_VALUES[Piece::WhiteQueen as usize]
+                    + self.white_king.pop_count() * PIECE_VALUES[Piece::WhiteKing as usize]
+            }
+            Color::Black => {
+                self.black_pawns.pop_count() * PIECE_VALUES[Piece::BlackPawn as usize]
+                    + self.black_knights.pop_count() * PIECE_VALUES[Piece::BlackKnight as usize]
+                    + self.black_bishops.pop_count() * PIECE_VALUES[Piece::BlackBishop as usize]
+                    + self.black_rooks.pop_count() * PIECE_VALUES[Piece::BlackRook as usize]
+                    + self.black_queens.pop_count() * PIECE_VALUES[Piece::BlackQueen as usize]
+                    + self.black_king.pop_count() * PIECE_VALUES[Piece::BlackKing as usize]
             }
         }
     }
@@ -401,5 +425,42 @@ mod tests {
         let start_state = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
         let parsed_state = BoardState::from_fen(start_state).unwrap();
         assert_eq!(parsed_state, BoardState::default());
+    }
+
+    #[test]
+    fn test_board_material() {
+        let mut board_one = Board::empty();
+        assert_eq!(board_one.material(Color::White), 0);
+        assert_eq!(board_one.material(Color::Black), 0);
+        let _ = board_one.add_piece(Piece::BlackQueen, Square::B1);
+        assert_eq!(board_one.material(Color::White), 0);
+        assert_eq!(board_one.material(Color::Black), 1000);
+        let _ = board_one.add_piece(Piece::BlackRook, Square::C1);
+        assert_eq!(board_one.material(Color::White), 0);
+        assert_eq!(board_one.material(Color::Black), 1000 + 550);
+        let _ = board_one.add_piece(Piece::WhitePawn, Square::F7);
+        let _ = board_one.add_piece(Piece::WhitePawn, Square::F8);
+        let _ = board_one.add_piece(Piece::WhitePawn, Square::G3);
+        assert_eq!(board_one.material(Color::White), 3 * 100);
+        assert_eq!(board_one.material(Color::Black), 1000 + 550);
+
+        let mut board_two = Board::default();
+        assert_eq!(
+            board_two.material(Color::White),
+            8 * 100 + 2 * 325 + 2 * 325 + 2 * 550 + 1000 + 50000
+        );
+        assert_eq!(
+            board_two.material(Color::Black),
+            8 * 100 + 2 * 325 + 2 * 325 + 2 * 550 + 1000 + 50000
+        );
+        let _ = board_two.remove_piece(Piece::BlackQueen, Square::D8);
+        assert_eq!(
+            board_two.material(Color::White),
+            8 * 100 + 2 * 325 + 2 * 325 + 2 * 550 + 1000 + 50000
+        );
+        assert_eq!(
+            board_two.material(Color::Black),
+            8 * 100 + 2 * 325 + 2 * 325 + 2 * 550 + 50000
+        );
     }
 }

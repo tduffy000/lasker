@@ -140,17 +140,6 @@ pub enum Piece {
 }
 
 impl Piece {
-    fn value(self) -> u16 {
-        match self {
-            Self::WhitePawn | Self::BlackPawn => 100,
-            Self::WhiteKnight | Self::BlackKnight => 325,
-            Self::WhiteBishop | Self::BlackBishop => 325,
-            Self::WhiteRook | Self::BlackRook => 550,
-            Self::WhiteQueen | Self::BlackQueen => 1000,
-            Self::WhiteKing | Self::BlackKing => 0,
-        }
-    }
-
     fn is_minor(self) -> bool {
         match self {
             Self::WhitePawn | Self::BlackPawn => true,
