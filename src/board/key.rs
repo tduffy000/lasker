@@ -1,6 +1,6 @@
 use rand::random;
 
-use crate::board::types::Color;
+use crate::board::types::{Color, Square};
 use crate::board::BoardState;
 
 use crate::board::constants::SQUARES;
