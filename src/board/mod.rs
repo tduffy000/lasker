@@ -10,9 +10,9 @@ mod utils;
 
 use bitboard::Bitboard;
 use error::{FENParsingError, NoPieceOnSquareError, SquareTakenError};
-use types::{CastlingRights, Color, EnumToArray, File, Piece, Rank, Square};
+use types::{CastlingRights, Color, File, Piece, Rank, Square};
 
-use self::constants::PIECE_VALUES;
+use crate::board::constants::{FILES, PIECE_VALUES, RANKS};
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct BoardState {
@@ -275,6 +275,10 @@ impl Board {
         }
         Ok(board)
     }
+
+    fn is_square_attacked(&self, sq: Square, color: Color) -> bool {
+        true
+    }
 }
 
 impl Default for Board {
@@ -300,10 +304,10 @@ impl Debug for Board {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let line_br = "  +---+---+---+---+---+---+---+---+\n";
         f.write_str(line_br)?;
-        for rank in Rank::array().iter().rev() {
+        for rank in RANKS.iter().rev() {
             f.write_str(format!("{} ", *rank as usize).as_str())?;
-            for file in File::array().iter() {
-                let sq: Bitboard = Square::new(*file, *rank).into();
+            for &file in FILES.iter() {
+                let sq: Bitboard = Square::new(file, *rank).into();
                 let s = if (self.white_bishops & sq).0 != 0x0 {
                     "| B "
                 } else if (self.white_king & sq).0 != 0x0 {

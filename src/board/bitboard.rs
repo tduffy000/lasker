@@ -3,11 +3,9 @@ use std::{
     ops::{BitAnd, BitAndAssign, BitOr, BitOrAssign, BitXor, BitXorAssign},
 };
 
-use crate::board::types::{EnumToArray, File, Rank, Square};
+use crate::board::types::Square;
 use crate::board::utils::set_bits;
-
-const WHITE_SQUARE: u64 = 0x55AA55AA55AA55AA;
-const BLACK_SQUARES: u64 = 0xAA55AA55AA55AA55;
+use crate::board::constants::{FILES, RANKS, SQUARES};
 
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Bitboard(pub u64);
@@ -39,7 +37,7 @@ impl Into<Vec<Square>> for Bitboard {
         let set = set_bits(self.into());
         let mut squares = Vec::new();
         for s in set {
-            if let Some(sq) = Square::array().get(s) {
+            if let Some(sq) = SQUARES.get(s) {
                 squares.push(*sq)
             }
         }
@@ -114,9 +112,9 @@ impl Debug for Bitboard {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let line_br = "+---+---+---+---+---+---+---+---+\n";
         f.write_str(line_br)?;
-        for rank in Rank::array().iter().rev() {
+        for rank in RANKS.iter().rev() {
             f.write_str(format!("{} ", *rank as usize).as_str())?;
-            for file in File::array().iter().rev() {
+            for file in FILES.iter().rev() {
                 let sq: Bitboard = Square::new(*file, *rank).into();
                 let s = if (*self & sq).0 != 0x0 {
                     "| X "

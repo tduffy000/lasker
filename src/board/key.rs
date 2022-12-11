@@ -1,7 +1,9 @@
 use rand::random;
 
-use crate::board::types::{Color, EnumToArray, Square};
+use crate::board::types::Color;
 use crate::board::BoardState;
+
+use crate::board::constants::SQUARES;
 
 pub struct PositionKeyGenerator {
     key: u64,
@@ -50,7 +52,7 @@ impl PositionKeyGenerator {
         let mut key = 0;
 
         // pieces
-        for sq in Square::array().iter() {
+        for sq in SQUARES.iter() {
             if let Some(piece) = state.board.piece(sq) {
                 let piece_idx = piece as usize;
                 key ^= self.piece_hashes[piece_idx][*sq as usize];

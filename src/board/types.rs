@@ -5,17 +5,11 @@ use crate::board::{
     Bitboard,
 };
 
-// using Little-Endian Rank File Mapping
-// @see https://www.chessprogramming.org/Square_Mapping_Considerations
-const FILE_A: u64 = 0x0101010101010101;
-const RANK_1: u64 = 0xFF;
-const A1_H8_DIAGONAL: u64 = 0x8040201008040201;
-const H1_A1_DIAGONAL: u64 = 0x0102040810204080;
-const FEN_BLANK: &str = "-";
+use crate::board::constants::{
+    FILES, FILE_A, IS_MAJOR_PIECE, IS_MINOR_PIECE, RANKS, RANK_1, SQUARES,
+};
 
-pub trait EnumToArray<T, const N: usize> {
-    fn array() -> [T; N];
-}
+const FEN_BLANK: &str = "-";
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Color {
@@ -36,23 +30,6 @@ pub enum File {
     H,
 }
 
-pub const FILES: [File; 8] = [
-    File::A,
-    File::B,
-    File::C,
-    File::D,
-    File::E,
-    File::F,
-    File::G,
-    File::H,
-];
-
-impl EnumToArray<File, 8> for File {
-    fn array() -> [File; 8] {
-        FILES
-    }
-}
-
 impl Into<Bitboard> for File {
     fn into(self) -> Bitboard {
         Bitboard(FILE_A << self as usize)
@@ -65,7 +42,7 @@ impl TryFrom<char> for File {
     fn try_from(value: char) -> Result<Self, Self::Error> {
         let alpha = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
         match alpha.iter().position(|&el| el == value) {
-            Some(idx) => Ok(File::array()[idx]),
+            Some(idx) => Ok(FILES[idx]),
             None => Err(InvalidCharError::new(value)),
         }
     }
@@ -84,23 +61,6 @@ pub enum Rank {
     Rank8,
 }
 
-pub const RANKS: [Rank; 8] = [
-    Rank::Rank1,
-    Rank::Rank2,
-    Rank::Rank3,
-    Rank::Rank4,
-    Rank::Rank5,
-    Rank::Rank6,
-    Rank::Rank7,
-    Rank::Rank8,
-];
-
-impl EnumToArray<Rank, 8> for Rank {
-    fn array() -> [Rank; 8] {
-        RANKS
-    }
-}
-
 impl Into<Bitboard> for Rank {
     fn into(self) -> Bitboard {
         Bitboard(RANK_1 << (8 * (self as usize - 1)))
@@ -116,7 +76,7 @@ impl TryFrom<char> for Rank {
             if digit > 8 {
                 Err(InvalidCharError::new(value))
             } else {
-                Ok(Rank::array()[digit as usize])
+                Ok(RANKS[digit as usize])
             }
         } else {
             Err(InvalidCharError::new(value))
@@ -124,6 +84,7 @@ impl TryFrom<char> for Rank {
     }
 }
 
+#[repr(usize)]
 pub enum Piece {
     WhitePawn,
     WhiteKnight,
@@ -141,14 +102,11 @@ pub enum Piece {
 
 impl Piece {
     fn is_minor(self) -> bool {
-        match self {
-            Self::WhitePawn | Self::BlackPawn => true,
-            _ => false,
-        }
+        IS_MINOR_PIECE[self as usize]
     }
 
     fn is_major(self) -> bool {
-        !self.is_minor()
+        IS_MAJOR_PIECE[self as usize]
     }
 }
 
@@ -261,79 +219,6 @@ pub enum Square {
     H8,
 }
 
-pub const SQUARES: [Square; 64] = [
-    Square::A1,
-    Square::B1,
-    Square::C1,
-    Square::D1,
-    Square::E1,
-    Square::F1,
-    Square::G1,
-    Square::H1,
-    Square::A2,
-    Square::B2,
-    Square::C2,
-    Square::D2,
-    Square::E2,
-    Square::F2,
-    Square::G2,
-    Square::H2,
-    Square::A3,
-    Square::B3,
-    Square::C3,
-    Square::D3,
-    Square::E3,
-    Square::F3,
-    Square::G3,
-    Square::H3,
-    Square::A4,
-    Square::B4,
-    Square::C4,
-    Square::D4,
-    Square::E4,
-    Square::F4,
-    Square::G4,
-    Square::H4,
-    Square::A5,
-    Square::B5,
-    Square::C5,
-    Square::D5,
-    Square::E5,
-    Square::F5,
-    Square::G5,
-    Square::H5,
-    Square::A6,
-    Square::B6,
-    Square::C6,
-    Square::D6,
-    Square::E6,
-    Square::F6,
-    Square::G6,
-    Square::H6,
-    Square::A7,
-    Square::B7,
-    Square::C7,
-    Square::D7,
-    Square::E7,
-    Square::F7,
-    Square::G7,
-    Square::H7,
-    Square::A8,
-    Square::B8,
-    Square::C8,
-    Square::D8,
-    Square::E8,
-    Square::F8,
-    Square::G8,
-    Square::H8,
-];
-
-impl EnumToArray<Square, 64> for Square {
-    fn array() -> [Square; 64] {
-        SQUARES
-    }
-}
-
 impl TryFrom<usize> for Square {
     type Error = SquareIndexError;
 
@@ -364,13 +249,13 @@ impl Square {
     pub fn rank(&self) -> Rank {
         let pos = *self as usize;
         let rank_pos = pos >> 3;
-        *Rank::array().get(rank_pos).unwrap()
+        *RANKS.get(rank_pos).unwrap()
     }
 
     pub fn file(&self) -> File {
         let pos = *self as usize;
         let file_pos = pos & 7;
-        *File::array().get(file_pos).unwrap()
+        *FILES.get(file_pos).unwrap()
     }
 
     pub fn from_fen(fen: impl ToString) -> Result<Option<Square>, InvalidCharError> {
