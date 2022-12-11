@@ -10,7 +10,7 @@ mod utils;
 
 use bitboard::Bitboard;
 use error::{FENParsingError, NoPieceOnSquareError, SquareTakenError};
-use types::{CastlingRights, Color, File, Piece, Rank, Square};
+use types::{CastlingRights, Color, Piece, Rank, Square};
 
 use crate::board::constants::{FILES, PIECE_VALUES, RANKS};
 
@@ -276,7 +276,7 @@ impl Board {
         Ok(board)
     }
 
-    fn is_square_attacked(&self, sq: Square, color: Color) -> bool {
+    fn is_square_attacked(&self, _sq: Square, _color: Color) -> bool {
         true
     }
 }
