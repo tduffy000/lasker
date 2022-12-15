@@ -1,4 +1,4 @@
-use std::convert::TryFrom;
+use std::{convert::TryFrom, ops::Add};
 
 use crate::board::{
     error::{FENParsingError, InvalidCharError, SquareIndexError},
@@ -6,7 +6,7 @@ use crate::board::{
 };
 
 use crate::board::constants::{
-    FILES, FILE_A, IS_MAJOR_PIECE, IS_MINOR_PIECE, RANKS, RANK_1, SQUARES,
+    FILES, FILE_A, IS_MAJOR_PIECE, IS_MINOR_PIECE, MAILBOX_IDX, MAILBOX, RANKS, RANK_1, SQUARES,
 };
 
 const FEN_BLANK: &str = "-";
@@ -152,8 +152,9 @@ impl TryFrom<char> for Piece {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
+#[repr(u8)]
 pub enum Square {
-    A1,
+    A1 = 0,
     B1,
     C1,
     D1,
@@ -237,6 +238,15 @@ impl Into<Bitboard> for Square {
     }
 }
 
+impl Add<i8> for Square {
+    type Output = i8;
+
+    fn add(self, rhs: i8) -> Self::Output {
+        let mailbox_idx = self.mailbox_idx() as i8 + rhs;
+        MAILBOX[mailbox_idx as usize]
+    }
+}
+
 impl Square {
     pub fn new(f: File, r: Rank) -> Self {
         let fbb: Bitboard = f.into();
@@ -272,16 +282,31 @@ impl Square {
 
         Ok(Some(Square::new(f, r)))
     }
+
+    pub fn mailbox_idx(self) -> usize {
+        MAILBOX_IDX[self as usize]
+    }
 }
 
+#[repr(i8)]
+#[derive(Debug, Clone, Copy)]
 pub enum Direction {
-    North = 1,
-    NorthEast = 9,
-    SouthEast = 7,
-    South = -1,
-    SouthWest = -9,
-    West = -8,
-    NorthWest = -7,
+    North = 10,
+    NorthEast = 11,
+    East = 1,
+    SouthEast = -9,
+    South = -10,
+    SouthWest = -11,
+    West = -1,
+    NorthWest = 9,
+    NorthEastL = 21,
+    NorthWestL = 19,
+    EastNorthL = 12,
+    EastSouthL = -8,
+    SouthEastL = -19,
+    SouthWestL = -21,
+    WestSouthL = -12,
+    WestNorthL = 8,
 }
 
 // four bits to represent castling
@@ -311,7 +336,6 @@ impl TryFrom<char> for CastlingRight {
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct CastlingRights(pub u8);
 
-// TODO: from_fen should be a trait
 impl CastlingRights {
     pub fn from_fen(fen: impl ToString) -> Result<Self, FENParsingError> {
         let mut rights = CastlingRights(0x0);
@@ -443,6 +467,17 @@ mod tests {
     }
 
     #[test]
+    fn test_square_mailbox_idx() {
+        let first_idx = Square::A1.mailbox_idx();
+        let first_mailbox_no = MAILBOX[first_idx];
+        assert_eq!(SQUARES[first_mailbox_no as usize], Square::A1);
+
+        let last_idx = Square::H8.mailbox_idx();
+        let last_mailbox_no = MAILBOX[last_idx];
+        assert_eq!(SQUARES[last_mailbox_no as usize], Square::H8);
+    }
+
+    #[test]
     fn test_castling_rights_from_fen() {
         let white_queenside = "Q";
         let all = "KQkq";
@@ -456,5 +491,157 @@ mod tests {
         assert_eq!(all_rights.0, 0b1111);
 
         assert!(CastlingRights::from_fen("X").is_err());
+    }
+
+    #[test]
+    fn test_direction_valid_moves() {
+        // move a rook on b5 to the left
+        let mailbox_no = Square::B5 + Direction::West as i8;
+        assert!(mailbox_no > 0);
+        let sq = SQUARES[mailbox_no as usize];
+        assert_eq!(sq, Square::A5);
+
+        // move a knight on d5
+        let mailbox_no = Square::D5 + Direction::NorthWestL as i8;
+        let sq = SQUARES[mailbox_no as usize];
+        assert_eq!(sq, Square::C7);
+
+        let mailbox_no = Square::D5 + Direction::NorthEastL as i8;
+        let sq = SQUARES[mailbox_no as usize];
+        assert_eq!(sq, Square::E7);
+
+        let mailbox_no = Square::D5 + Direction::EastNorthL as i8;
+        let sq = SQUARES[mailbox_no as usize];
+        assert_eq!(sq, Square::F6);
+        
+        let mailbox_no = Square::D5 + Direction::WestNorthL as i8;
+        let sq = SQUARES[mailbox_no as usize];
+        assert_eq!(sq, Square::B6);
+
+        let mailbox_no = Square::D5 + Direction::WestSouthL as i8;
+        let sq = SQUARES[mailbox_no as usize];
+        assert_eq!(sq, Square::B4);
+
+        let mailbox_no = Square::D5 + Direction::SouthWestL as i8;
+        let sq = SQUARES[mailbox_no as usize];
+        assert_eq!(sq, Square::C3);
+
+        let mailbox_no = Square::D5 + Direction::SouthEastL as i8;
+        let sq = SQUARES[mailbox_no as usize];
+        assert_eq!(sq, Square::E3);
+
+        let mailbox_no = Square::D5 + Direction::EastSouthL as i8;
+        let sq = SQUARES[mailbox_no as usize];
+        assert_eq!(sq, Square::F4);
+
+        // move a king on b2
+        let mailbox_no = Square::B2 + Direction::North as i8;
+        let sq = SQUARES[mailbox_no as usize];
+        assert_eq!(sq, Square::B3);
+
+        let mailbox_no = Square::B2 + Direction::NorthWest as i8;
+        let sq = SQUARES[mailbox_no as usize];
+        assert_eq!(sq, Square::A3);
+
+        let mailbox_no = Square::B2 + Direction::West as i8;
+        let sq = SQUARES[mailbox_no as usize];
+        assert_eq!(sq, Square::A2);
+
+        let mailbox_no = Square::B2 + Direction::SouthWest as i8;
+        let sq = SQUARES[mailbox_no as usize];
+        assert_eq!(sq, Square::A1);
+
+        let mailbox_no = Square::B2 + Direction::South as i8;
+        let sq = SQUARES[mailbox_no as usize];
+        assert_eq!(sq, Square::B1);
+
+        let mailbox_no = Square::B2 + Direction::SouthEast as i8;
+        let sq = SQUARES[mailbox_no as usize];
+        assert_eq!(sq, Square::C1);
+
+        let mailbox_no = Square::B2 + Direction::East as i8;
+        let sq = SQUARES[mailbox_no as usize];
+        assert_eq!(sq, Square::C2);
+
+        let mailbox_no = Square::B2 + Direction::NorthEast as i8;
+        let sq = SQUARES[mailbox_no as usize];
+        assert_eq!(sq, Square::C3);
+
+    }
+
+
+
+    #[test]
+    fn test_direction_offboard_moves() {
+        // move a rook on a5 to the left
+        let mailbox_no = Square::A5 + Direction::West as i8;
+        assert!(mailbox_no < 0);
+
+        // move a rook on h6 to the right
+        let mailbox_no = Square::H6 + Direction::East as i8;
+        assert!(mailbox_no < 0);
+
+        // move a knight on a1 down
+        let mailbox_no = Square::A1 + Direction::SouthEastL as i8;
+        assert!(mailbox_no < 0);
+        let mailbox_no = Square::A1 + Direction::SouthWestL as i8;
+        assert!(mailbox_no < 0);
+        let mailbox_no = Square::A1 + Direction::WestSouthL as i8;
+        assert!(mailbox_no < 0);
+        let mailbox_no = Square::A1 + Direction::EastSouthL as i8;
+        assert!(mailbox_no < 0);
+
+        // move a knight on a6 to the left
+        let mailbox_no = Square::A6 + Direction::NorthWestL as i8;
+        assert!(mailbox_no < 0);
+        let mailbox_no = Square::A6 + Direction::SouthWestL as i8;
+        assert!(mailbox_no < 0);
+        let mailbox_no = Square::A6 + Direction::WestNorthL as i8;
+        assert!(mailbox_no < 0);
+        let mailbox_no = Square::A6 + Direction::WestSouthL as i8;
+        assert!(mailbox_no < 0);
+
+        // move a knight on h6 to the right
+        let mailbox_no = Square::H6 + Direction::NorthEastL as i8;
+        assert!(mailbox_no < 0);
+        let mailbox_no = Square::H6 + Direction::SouthEastL as i8;
+        assert!(mailbox_no < 0);
+        let mailbox_no = Square::H6 + Direction::EastNorthL as i8;
+        assert!(mailbox_no < 0);
+        let mailbox_no = Square::H6 + Direction::EastSouthL as i8;
+        assert!(mailbox_no < 0);
+
+        // move a queen on d8 up
+        let mailbox_no = Square::D8 + Direction::North as i8;
+        assert!(mailbox_no < 0);
+        let mailbox_no = Square::D8 + Direction::NorthWest as i8;
+        assert!(mailbox_no < 0);
+        let mailbox_no = Square::D8 + Direction::NorthEast as i8;
+        assert!(mailbox_no < 0);
+
+        // move a queen on d1 down
+        let mailbox_no = Square::D1 + Direction::South as i8;
+        assert!(mailbox_no < 0);
+        let mailbox_no = Square::D1 + Direction::SouthWest as i8;
+        assert!(mailbox_no < 0);
+        let mailbox_no = Square::D1 + Direction::SouthEast as i8;
+        assert!(mailbox_no < 0);
+
+        // move a bishop on h8 up
+        let mailbox_no = Square::H8 + Direction::NorthEast as i8;
+        assert!(mailbox_no < 0);
+
+        // move a bishop on a8 up
+        let mailbox_no = Square::A8 + Direction::NorthWest as i8;
+        assert!(mailbox_no < 0);
+
+        // move a bishop on h1 down
+        let mailbox_no = Square::H1 + Direction::SouthEast as i8;
+        assert!(mailbox_no < 0);
+
+        // move a bishop on a1 down
+        let mailbox_no = Square::A1 + Direction::SouthWest as i8;
+        assert!(mailbox_no < 0);
+
     }
 }
