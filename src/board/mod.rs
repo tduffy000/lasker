@@ -16,8 +16,7 @@ use crate::board::constants::{FILES, PIECE_VALUES, RANKS};
 
 use self::{
     constants::{
-        BLACK_PIECES, DIAGONAL_DIRECTIONS, DIRECTIONS, KNIGHT_DIRECTIONS, SQUARES,
-        STRAIGHT_DIRECTIONS, WHITE_PIECES,
+        BLACK_PIECES, DIRECTIONS, WHITE_PIECES,
     },
     types::Direction,
 };
@@ -552,9 +551,9 @@ mod tests {
     #[test]
     fn test_is_square_attacked() {
         let fen = "rn1qkb1r/pp2pppp/3p3n/2p2b2/4P3/2N2N2/PPPP1PPP/R1BQKB1R";
-        let mut board = Board::from_fen(fen).unwrap();
+        let board = Board::from_fen(fen).unwrap();
 
-        let mut squares_attacked_by_white = HashSet::from([
+        let squares_attacked_by_white = HashSet::from([
             Square::B1, // rook on a1
             Square::C1, // rook on a1
             Square::D1, // knight on c3 + king on e1
@@ -599,7 +598,7 @@ mod tests {
             assert!(!board.is_square_attacked(*sq, Color::White));
         }
 
-        let mut squares_attacked_by_black = HashSet::from([
+        let squares_attacked_by_black = HashSet::from([
             Square::B8, // rook on a8
             Square::C8, // queen on d8 + bishop on f5
             Square::D8, // king on e8
