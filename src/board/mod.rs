@@ -14,6 +14,14 @@ use types::{CastlingRights, Color, Piece, Rank, Square};
 
 use crate::board::constants::{FILES, PIECE_VALUES, RANKS};
 
+use self::{
+    constants::{
+        BLACK_PIECES, DIAGONAL_DIRECTIONS, DIRECTIONS, KNIGHT_DIRECTIONS, SQUARES,
+        STRAIGHT_DIRECTIONS, WHITE_PIECES,
+    },
+    types::Direction,
+};
+
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct BoardState {
     board: Board,
@@ -116,6 +124,23 @@ impl Board {
             black_rooks: Bitboard::empty(),
             black_queens: Bitboard::empty(),
             black_king: Bitboard::empty(),
+        }
+    }
+
+    fn bitboard(&self, piece: &Piece) -> Bitboard {
+        match piece {
+            Piece::WhitePawn => self.white_pawns,
+            Piece::WhiteKnight => self.white_knights,
+            Piece::WhiteBishop => self.white_bishops,
+            Piece::WhiteRook => self.white_rooks,
+            Piece::WhiteQueen => self.white_queens,
+            Piece::WhiteKing => self.white_king,
+            Piece::BlackPawn => self.black_pawns,
+            Piece::BlackKnight => self.black_knights,
+            Piece::BlackBishop => self.black_bishops,
+            Piece::BlackRook => self.black_rooks,
+            Piece::BlackQueen => self.black_queens,
+            Piece::BlackKing => self.black_king,
         }
     }
 
@@ -276,8 +301,62 @@ impl Board {
         Ok(board)
     }
 
-    fn is_square_attacked(&self, _sq: Square, _color: Color) -> bool {
-        true
+    fn recur_attack_sq_search(
+        &self,
+        dirs: Vec<Direction>,
+        sq: Square,
+        depth: i8,
+        attack_bb: Bitboard,
+    ) -> bool {
+        let mut to_search = vec![];
+        for dir in dirs {
+            let mailbox_no = sq + (dir as i8 * depth);
+            if mailbox_no > 0 {
+                let other_sq_bb: Bitboard = Square::from_mailbox_no(mailbox_no).into();
+                if (other_sq_bb & attack_bb).0 != 0x0 {
+                    return true;
+                } else if (other_sq_bb & self.taken()).0 == 0x0 {
+                    to_search.push(dir);
+                }
+            }
+        }
+        if !to_search.is_empty() {
+            return self.recur_attack_sq_search(to_search, sq, depth + 1, attack_bb);
+        } else {
+            return false;
+        }
+    }
+
+    fn is_square_attacked(&self, sq: Square, color: Color) -> bool {
+        let piece_array: &[Piece; 6] = match color {
+            Color::White => &WHITE_PIECES,
+            Color::Black => &BLACK_PIECES,
+        };
+        for piece in piece_array {
+            let attack_dirs = DIRECTIONS[piece.attack_direction_idx()].to_vec();
+            let attack_bb = self.bitboard(piece);
+
+            if attack_bb.0 == 0x0 {
+                continue;
+            }
+
+            if piece.one_move_attack() {
+                for dir in attack_dirs {
+                    let mailbox_no = sq + dir as i8;
+                    if mailbox_no > 0 {
+                        let other_sq_bb: Bitboard = Square::from_mailbox_no(mailbox_no).into();
+                        if (other_sq_bb & attack_bb).0 != 0x0 {
+                            return true;
+                        }
+                    }
+                }
+            } else {
+                if self.recur_attack_sq_search(attack_dirs, sq, 1, attack_bb) {
+                    return true;
+                }
+            }
+        }
+        false
     }
 }
 
@@ -347,6 +426,8 @@ impl Debug for Board {
 
 #[cfg(test)]
 mod tests {
+
+    use std::collections::HashSet;
 
     use super::*;
 
@@ -466,5 +547,98 @@ mod tests {
             board_two.material(Color::Black),
             8 * 100 + 2 * 325 + 2 * 325 + 2 * 550 + 50000
         );
+    }
+
+    #[test]
+    fn test_is_square_attacked() {
+        let fen = "rn1qkb1r/pp2pppp/3p3n/2p2b2/4P3/2N2N2/PPPP1PPP/R1BQKB1R";
+        let mut board = Board::from_fen(fen).unwrap();
+
+        let mut squares_attacked_by_white = HashSet::from([
+            Square::B1, // rook on a1
+            Square::C1, // rook on a1
+            Square::D1, // knight on c3 + king on e1
+            Square::E1, // king on e1
+            Square::F1, // king on e1 + rook on h1
+            Square::G1, // rook on h1 + knight on f3
+            Square::A2, // rook on a1
+            Square::B2, // bishop on c1
+            Square::C2, // queen on d1
+            Square::D2, // queen on d1, king on e1, knight on d2
+            Square::E2, // knight on c3, queen on d1, bishop on f1
+            Square::F2, // king on e1
+            Square::G2, // bishop on f1
+            Square::H2, // rook on h1
+            Square::A3, // pawn on b2
+            Square::B3, // pawn on a2
+            Square::C3, // pawns on b2 + d2
+            Square::D3, // pawn on c2 + bishop on f1
+            Square::E3, // pawns on d2 + f2
+            Square::F3, // queen on d1 + pawn on g2
+            Square::G3, // pawns on f2 + h2
+            Square::H3, // pawn on g2
+            Square::A4, // knight on c3
+            Square::C4, // bishop on f1
+            Square::D4, // knight on f3
+            Square::E4, // knight on c3
+            Square::H4, // knight on f3
+            Square::B5, // bishop on f1
+            Square::D5, // pawn on e4 + knight on c3
+            Square::E5, // knight on f3
+            Square::F5, // pawn on e4
+            Square::G5, // knight on f3
+            Square::A6, // bishop on f1
+        ]);
+        for sq in &squares_attacked_by_white {
+            assert!(board.is_square_attacked(*sq, Color::White));
+        }
+        let squares_not_attacked_by_white = SQUARES
+            .iter()
+            .filter(|sq| !squares_attacked_by_white.contains(sq));
+        for sq in squares_not_attacked_by_white {
+            assert!(!board.is_square_attacked(*sq, Color::White));
+        }
+
+        let mut squares_attacked_by_black = HashSet::from([
+            Square::B8, // rook on a8
+            Square::C8, // queen on d8 + bishop on f5
+            Square::D8, // king on e8
+            Square::E8, // queen on d8
+            Square::F8, // king on e8 + rook on h8
+            Square::G8, // knight on h6
+            Square::A7, // rook on a8
+            Square::C7, // queen on d8
+            Square::D7, // queen on d8, bishop on f5, king on e8
+            Square::E7, // queen on d8, king on e8, bishop on f8
+            Square::F7, // king on e8 + knight on h6
+            Square::G7, // bishop on f8
+            Square::H7, // rook on h8 + bishop on f5
+            Square::A6, // pawn on b7 + knight on b8
+            Square::B6, // pawn on a7 + queen on d8
+            Square::C6, // knight on b8
+            Square::D6, // queen on d8 + pawn on e7
+            Square::E6, // pawn on f7, bishop on f5
+            Square::F6, // pawns on e7, g7
+            Square::G6, // pawns on f7, h7, bishop on f5
+            Square::H6, // pawn on g7
+            Square::A5, // queen on d8
+            Square::C5, // pawn on d6
+            Square::E5, // pawn on d6
+            Square::F5, // knight on h6
+            Square::B4, // pawn on c5
+            Square::D4, // pawn on c5
+            Square::E4, // bishop on f5
+            Square::G4, // bishop on f5 + knight on h6
+            Square::H3, // bishop on f5
+        ]);
+        for sq in &squares_attacked_by_black {
+            assert!(board.is_square_attacked(*sq, Color::Black));
+        }
+        let squares_not_attacked_by_black = SQUARES
+            .iter()
+            .filter(|sq| !squares_attacked_by_black.contains(sq));
+        for sq in squares_not_attacked_by_black {
+            assert!(!board.is_square_attacked(*sq, Color::Black));
+        }
     }
 }

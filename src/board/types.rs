@@ -1,4 +1,8 @@
-use std::{convert::TryFrom, ops::Add};
+use std::{
+    convert::TryFrom,
+    iter::Filter,
+    ops::{Add, Range},
+};
 
 use crate::board::{
     error::{FENParsingError, InvalidCharError, SquareIndexError},
@@ -6,7 +10,7 @@ use crate::board::{
 };
 
 use crate::board::constants::{
-    FILES, FILE_A, IS_MAJOR_PIECE, IS_MINOR_PIECE, MAILBOX_IDX, MAILBOX, RANKS, RANK_1, SQUARES,
+    FILES, FILE_A, IS_MAJOR_PIECE, IS_MINOR_PIECE, MAILBOX, MAILBOX_IDX, RANKS, RANK_1, SQUARES,
 };
 
 const FEN_BLANK: &str = "-";
@@ -29,6 +33,8 @@ pub enum File {
     G,
     H,
 }
+
+// TODO (tcd 12/17/22): impl IntoIterator for Rank + File to get back Squares
 
 impl Into<Bitboard> for File {
     fn into(self) -> Bitboard {
@@ -85,6 +91,7 @@ impl TryFrom<char> for Rank {
 }
 
 #[repr(usize)]
+#[derive(Debug)]
 pub enum Piece {
     WhitePawn,
     WhiteKnight,
@@ -107,6 +114,27 @@ impl Piece {
 
     fn is_major(self) -> bool {
         IS_MAJOR_PIECE[self as usize]
+    }
+    pub fn attack_direction_idx(&self) -> Range<usize> {
+        match self {
+            Piece::WhitePawn => 4..6,
+            Piece::BlackPawn => 6..8,
+            Piece::WhiteKnight | Piece::BlackKnight => 8..16,
+            Piece::WhiteBishop | Piece::BlackBishop => 4..8,
+            Piece::WhiteRook | Piece::BlackRook => 0..4,
+            Piece::WhiteQueen | Piece::BlackQueen | Piece::WhiteKing | Piece::BlackKing => 0..8,
+        }
+    }
+    pub fn one_move_attack(&self) -> bool {
+        match self {
+            Piece::WhitePawn
+            | Piece::BlackPawn
+            | Piece::WhiteKnight
+            | Piece::BlackKnight
+            | Piece::WhiteKing
+            | Piece::BlackKing => true,
+            _ => false,
+        }
     }
 }
 
@@ -151,7 +179,7 @@ impl TryFrom<char> for Piece {
     }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[repr(u8)]
 pub enum Square {
     A1 = 0,
@@ -248,6 +276,10 @@ impl Add<i8> for Square {
 }
 
 impl Square {
+    pub fn from_mailbox_no(mailbox_no: i8) -> Self {
+        SQUARES[mailbox_no as usize]
+    }
+
     pub fn new(f: File, r: Rank) -> Self {
         let fbb: Bitboard = f.into();
         let rbb: Bitboard = r.into();
@@ -513,7 +545,7 @@ mod tests {
         let mailbox_no = Square::D5 + Direction::EastNorthL as i8;
         let sq = SQUARES[mailbox_no as usize];
         assert_eq!(sq, Square::F6);
-        
+
         let mailbox_no = Square::D5 + Direction::WestNorthL as i8;
         let sq = SQUARES[mailbox_no as usize];
         assert_eq!(sq, Square::B6);
@@ -566,10 +598,7 @@ mod tests {
         let mailbox_no = Square::B2 + Direction::NorthEast as i8;
         let sq = SQUARES[mailbox_no as usize];
         assert_eq!(sq, Square::C3);
-
     }
-
-
 
     #[test]
     fn test_direction_offboard_moves() {
@@ -642,6 +671,5 @@ mod tests {
         // move a bishop on a1 down
         let mailbox_no = Square::A1 + Direction::SouthWest as i8;
         assert!(mailbox_no < 0);
-
     }
 }

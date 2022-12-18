@@ -16,3 +16,6 @@ An attempt to build a UCI-compliant chess engine from the ground up in pure Rust
 ### Other Rust Engines
 - [List](https://www.chessprogramming.org/Category:Rust)
 - [Chess Programming Rust Overview](https://www.chessprogramming.org/Rust)
+
+### Helpful
+- [Chess FEN Viewer](https://www.dailychess.com/chess/chess-fen-viewer.php)
