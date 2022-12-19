@@ -1,15 +1,15 @@
 use std::{
     convert::TryFrom,
+    fmt::{self, Write},
     ops::{Add, Range},
 };
 
 use crate::board::{
+    constants::{
+        FILES, FILE_A, IS_MAJOR_PIECE, IS_MINOR_PIECE, MAILBOX, MAILBOX_IDX, RANKS, RANK_1, SQUARES,
+    },
     error::{FENParsingError, InvalidCharError, SquareIndexError},
     Bitboard,
-};
-
-use crate::board::constants::{
-    FILES, FILE_A, IS_MAJOR_PIECE, IS_MINOR_PIECE, MAILBOX, MAILBOX_IDX, RANKS, RANK_1, SQUARES,
 };
 
 const FEN_BLANK: &str = "-";
@@ -34,6 +34,27 @@ pub enum File {
 }
 
 // TODO (tcd 12/17/22): impl IntoIterator for Rank + File to get back Squares
+impl Into<char> for &File {
+    fn into(self) -> char {
+        match self {
+            File::A => 'a',
+            File::B => 'b',
+            File::C => 'c',
+            File::D => 'd',
+            File::E => 'e',
+            File::F => 'f',
+            File::G => 'g',
+            File::H => 'h',
+        }
+    }
+}
+
+impl fmt::Display for File {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_char(self.into())?;
+        Ok(())
+    }
+}
 
 impl Into<Bitboard> for File {
     fn into(self) -> Bitboard {
@@ -66,6 +87,28 @@ pub enum Rank {
     Rank8,
 }
 
+impl Into<char> for &Rank {
+    fn into(self) -> char {
+        match self {
+            Rank::Rank1 => '1',
+            Rank::Rank2 => '2',
+            Rank::Rank3 => '3',
+            Rank::Rank4 => '4',
+            Rank::Rank5 => '5',
+            Rank::Rank6 => '6',
+            Rank::Rank7 => '7',
+            Rank::Rank8 => '8',
+        }
+    }
+}
+
+impl fmt::Display for Rank {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_char(self.into());
+        Ok(())
+    }
+}
+
 impl Into<Bitboard> for Rank {
     fn into(self) -> Bitboard {
         Bitboard(RANK_1 << (8 * (self as usize - 1)))
@@ -90,7 +133,7 @@ impl TryFrom<char> for Rank {
 }
 
 #[repr(usize)]
-#[derive(Debug)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Piece {
     WhitePawn,
     WhiteKnight,
@@ -179,7 +222,7 @@ impl TryFrom<char> for Piece {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
-#[repr(u8)]
+#[repr(usize)]
 pub enum Square {
     A1 = 0,
     B1,
@@ -245,6 +288,16 @@ pub enum Square {
     F8,
     G8,
     H8,
+}
+
+impl fmt::Display for Square {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let rank = &self.rank();
+        let file = &self.file();
+        f.write_char(file.into())?;
+        f.write_char(rank.into())?;
+        Ok(())
+    }
 }
 
 impl TryFrom<usize> for Square {
@@ -364,7 +417,7 @@ impl TryFrom<char> for CastlingRight {
     }
 }
 
-#[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct CastlingRights(pub u8);
 
 impl CastlingRights {

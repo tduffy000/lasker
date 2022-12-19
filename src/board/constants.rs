@@ -1,6 +1,4 @@
-use crate::board::types::{Color, File, Piece, Rank, Square};
-
-use super::types::Direction;
+use crate::board::types::{Color, Direction, File, Piece, Rank, Square};
 
 // using Little-Endian Rank File Mapping
 // @see https://www.chessprogramming.org/Square_Mapping_Considerations

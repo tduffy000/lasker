@@ -3,9 +3,11 @@ use std::{
     ops::{BitAnd, BitAndAssign, BitOr, BitOrAssign, BitXor, BitXorAssign},
 };
 
-use crate::board::constants::{FILES, RANKS, SQUARES};
-use crate::board::types::Square;
-use crate::board::utils::set_bits;
+use crate::board::{
+    constants::{FILES, RANKS, SQUARES},
+    types::Square,
+    utils::set_bits,
+};
 
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Bitboard(pub u64);

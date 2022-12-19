@@ -1,27 +1,20 @@
 use std::{convert::TryFrom, fmt::Debug};
 
-pub mod key;
-
 mod bitboard;
-mod constants;
+pub mod constants;
 mod error;
-mod types;
+pub mod key;
+mod r#move;
+pub mod types;
 mod utils;
 
 use bitboard::Bitboard;
+use constants::{BLACK_PIECES, DIRECTIONS, FILES, PIECE_VALUES, RANKS, WHITE_PIECES};
 use error::{FENParsingError, NoPieceOnSquareError, SquareTakenError};
-use types::{CastlingRights, Color, Piece, Rank, Square};
+use r#move::Move;
+use types::{CastlingRights, Color, Direction, Piece, Rank, Square};
 
-use crate::board::constants::{FILES, PIECE_VALUES, RANKS};
-
-use self::{
-    constants::{
-        BLACK_PIECES, DIRECTIONS, WHITE_PIECES,
-    },
-    types::Direction,
-};
-
-#[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct BoardState {
     board: Board,
     side_to_move: Color,
@@ -75,6 +68,14 @@ impl BoardState {
 
         Ok(state)
     }
+
+    fn make_move(self, mv: Move) -> BoardState {
+        todo!()
+    }
+
+    fn unmake_move(self, mv: Move) -> BoardState {
+        todo!()
+    }
 }
 
 impl Default for BoardState {
@@ -92,7 +93,7 @@ impl Default for BoardState {
     }
 }
 
-#[derive(PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Clone, PartialEq, Eq, PartialOrd, Ord)]
 struct Board {
     white_pawns: Bitboard,
     white_knights: Bitboard,
@@ -429,6 +430,7 @@ mod tests {
     use std::collections::HashSet;
 
     use super::*;
+    use constants::SQUARES;
 
     fn rm_whitespace(s: impl ToString) -> String {
         let mut out = s.to_string();
@@ -551,9 +553,9 @@ mod tests {
     #[test]
     fn test_is_square_attacked() {
         let fen = "rn1qkb1r/pp2pppp/3p3n/2p2b2/4P3/2N2N2/PPPP1PPP/R1BQKB1R";
-        let board = Board::from_fen(fen).unwrap();
+        let mut board = Board::from_fen(fen).unwrap();
 
-        let squares_attacked_by_white = HashSet::from([
+        let mut squares_attacked_by_white = HashSet::from([
             Square::B1, // rook on a1
             Square::C1, // rook on a1
             Square::D1, // knight on c3 + king on e1
@@ -598,7 +600,7 @@ mod tests {
             assert!(!board.is_square_attacked(*sq, Color::White));
         }
 
-        let squares_attacked_by_black = HashSet::from([
+        let mut squares_attacked_by_black = HashSet::from([
             Square::B8, // rook on a8
             Square::C8, // queen on d8 + bishop on f5
             Square::D8, // king on e8

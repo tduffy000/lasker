@@ -1,9 +1,6 @@
 use rand::random;
 
-use crate::board::types::Color;
-use crate::board::BoardState;
-
-use crate::board::constants::SQUARES;
+use crate::board::{constants::SQUARES, types::Color, BoardState};
 
 pub struct PositionKeyGenerator {
     key: u64,
