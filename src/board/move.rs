@@ -5,7 +5,11 @@ use crate::board::{
     types::{Piece, Square},
 };
 
-pub struct Move(u32);
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
+pub struct Move {
+    repr: u32,
+    score: i8,
+}
 
 impl fmt::Display for Move {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -27,6 +31,13 @@ impl fmt::Display for Move {
 }
 
 impl Move {
+    pub fn empty() -> Move {
+        Move {
+            repr: 0x0,
+            score: 0,
+        }
+    }
+
     pub fn new(
         from: Square,
         to: Square,
@@ -50,29 +61,30 @@ impl Move {
         let pawn_start_bit = if pawn_start { 0b1 << 21 } else { 0b0 << 21 };
         let castle_bit = if castle { 0b1 << 22 } else { 0b0 << 22 };
 
-        Move(
-            from_sq_bits
+        Move {
+            repr: from_sq_bits
                 | to_sq_bits
                 | captured_piece_bits
                 | promoted_piece_bits
                 | en_passant_bit
                 | pawn_start_bit
                 | castle_bit,
-        )
+            score: 0,
+        }
     }
 
     pub fn from_sq(&self) -> Square {
-        let idx = self.0 & 0x3F;
+        let idx = self.repr & 0x3F;
         SQUARES[idx as usize]
     }
 
     pub fn to_sq(&self) -> Square {
-        let idx = (self.0 >> 6) & 0x3F;
+        let idx = (self.repr >> 6) & 0x3F;
         SQUARES[idx as usize]
     }
 
     pub fn captured(&self) -> Option<Piece> {
-        let idx = (self.0 >> 12) & 0xF;
+        let idx = (self.repr >> 12) & 0xF;
         if idx == 0 {
             None
         } else {
@@ -81,7 +93,7 @@ impl Move {
     }
 
     pub fn promoted(&self) -> Option<Piece> {
-        let idx = (self.0 >> 16) & 0xF;
+        let idx = (self.repr >> 16) & 0xF;
         if idx == 0 {
             None
         } else {
@@ -90,15 +102,15 @@ impl Move {
     }
 
     pub fn en_passant(&self) -> bool {
-        ((self.0 >> 20) & (0b1 as u32)) == 0b1
+        ((self.repr >> 20) & (0b1 as u32)) == 0b1
     }
 
     pub fn pawn_start(&self) -> bool {
-        ((self.0 >> 21) & (0b1 as u32)) == 0b1
+        ((self.repr >> 21) & (0b1 as u32)) == 0b1
     }
 
     pub fn castle(&self) -> bool {
-        ((self.0 >> 22) & (0b1 as u32)) == 0b1
+        ((self.repr >> 22) & (0b1 as u32)) == 0b1
     }
 }
 
@@ -112,7 +124,15 @@ mod tests {
         let mv = Move::new(Square::C3, Square::C4, None, None, false, false, false);
         assert_eq!(format!("{}", mv), "c3c4");
 
-        let mv = Move::new(Square::H7, Square::H8, None, Some(Piece::WhiteQueen), false, false, false);
+        let mv = Move::new(
+            Square::H7,
+            Square::H8,
+            None,
+            Some(Piece::WhiteQueen),
+            false,
+            false,
+            false,
+        );
         assert_eq!(format!("{}", mv), "h7h8q");
     }
 

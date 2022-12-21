@@ -157,6 +157,7 @@ impl Piece {
     fn is_major(self) -> bool {
         IS_MAJOR_PIECE[self as usize]
     }
+
     pub fn attack_direction_idx(&self) -> Range<usize> {
         match self {
             Piece::WhitePawn => 4..6,
@@ -167,15 +168,27 @@ impl Piece {
             Piece::WhiteQueen | Piece::BlackQueen | Piece::WhiteKing | Piece::BlackKing => 0..8,
         }
     }
-    pub fn one_move_attack(&self) -> bool {
+
+    pub fn move_direction_idx(&self) -> Range<usize> {
+        match self {
+            Piece::WhitePawn => 6..8,
+            Piece::BlackPawn => 4..6,
+            Piece::WhiteKnight | Piece::BlackKnight => 8..16,
+            Piece::WhiteBishop | Piece::BlackBishop => 4..8,
+            Piece::WhiteRook | Piece::BlackRook => 0..4,
+            Piece::WhiteQueen | Piece::BlackQueen | Piece::WhiteKing | Piece::BlackKing => 0..8,
+        }
+    }
+
+    pub fn can_slide(&self) -> bool {
         match self {
             Piece::WhitePawn
             | Piece::BlackPawn
             | Piece::WhiteKnight
             | Piece::BlackKnight
             | Piece::WhiteKing
-            | Piece::BlackKing => true,
-            _ => false,
+            | Piece::BlackKing => false,
+            _ => true,
         }
     }
 }
