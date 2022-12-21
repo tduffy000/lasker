@@ -69,11 +69,11 @@ impl BoardState {
         Ok(state)
     }
 
-    pub fn make_move(self, mv: Move) -> BoardState {
+    pub fn make_move(self, _mv: Move) -> BoardState {
         todo!()
     }
 
-    pub fn unmake_move(self, mv: Move) -> BoardState {
+    pub fn unmake_move(self, _mv: Move) -> BoardState {
         todo!()
     }
 }
@@ -469,10 +469,26 @@ impl Board {
                             }
                         }
                     }
-                    Piece::WhiteKnight | Piece::BlackKnight => (),
+                    Piece::WhiteKnight | Piece::BlackKnight => {
+                        let dirs = &DIRECTIONS[piece.attack_direction_idx()];
+                        for dir in dirs {
+                            let target_sq_mailbox_no = sq + *dir as i8;
+                            if target_sq_mailbox_no > 0 {
+                                let other_sq = Square::from_mailbox_no(target_sq_mailbox_no);
+                                if !self.sq_taken_by_color(other_sq, piece.color()) {
+                                    let captured = self.piece(&other_sq);
+                                    moves.push(Move::new(
+                                        sq, other_sq, captured, None, false, false, false,
+                                    ))
+                                }
+                            }
+                        }
+                    }
+                    // pieces that can slide
                     Piece::WhiteBishop | Piece::BlackBishop => (),
                     Piece::WhiteRook | Piece::BlackRook => (),
                     Piece::WhiteQueen | Piece::BlackQueen => (),
+                    // pieces that can't move into attack
                     Piece::WhiteKing | Piece::BlackKing => (),
                 };
             }
@@ -707,12 +723,13 @@ mod tests {
 
     #[test]
     fn test_board_legal_moves() {
-        let fen = "5r2/1k1P1pP1/8/8/8/1p6/PP2p3/1K3N2";
+        let fen = "5r2/1k1P1pP1/8/7n/8/1p6/PP2p3/1K3N2";
         let board = Board::from_fen(fen).unwrap();
         let mut white_moves = board.legal_moves(Color::White);
         let mut black_moves = board.legal_moves(Color::Black);
 
         let mut expected_white_moves = vec![
+            // pawns
             Move::new(Square::A2, Square::A3, None, None, false, false, false),
             Move::new(Square::A2, Square::A4, None, None, false, true, false),
             Move::new(
@@ -751,9 +768,15 @@ mod tests {
                 false,
                 false,
             ),
+            // knights
+            Move::new(Square::F1, Square::D2, None, None, false, false, false),
+            Move::new(Square::F1, Square::E3, None, None, false, false, false),
+            Move::new(Square::F1, Square::G3, None, None, false, false, false),
+            Move::new(Square::F1, Square::H2, None, None, false, false, false),
         ];
 
         let mut expected_black_moves = vec![
+            // pawns
             Move::new(
                 Square::B3,
                 Square::A2,
@@ -783,6 +806,19 @@ mod tests {
             ),
             Move::new(Square::F7, Square::F6, None, None, false, false, false),
             Move::new(Square::F7, Square::F5, None, None, false, true, false),
+            // knights
+            Move::new(
+                Square::H5,
+                Square::G7,
+                Some(Piece::WhitePawn),
+                None,
+                false,
+                false,
+                false,
+            ),
+            Move::new(Square::H5, Square::F6, None, None, false, false, false),
+            Move::new(Square::H5, Square::F4, None, None, false, false, false),
+            Move::new(Square::H5, Square::G3, None, None, false, false, false),
         ];
 
         let (_, _) = (white_moves.sort(), expected_white_moves.sort());
@@ -831,9 +867,9 @@ mod tests {
     #[test]
     fn test_is_square_attacked() {
         let fen = "rn1qkb1r/pp2pppp/3p3n/2p2b2/4P3/2N2N2/PPPP1PPP/R1BQKB1R";
-        let mut board = Board::from_fen(fen).unwrap();
+        let board = Board::from_fen(fen).unwrap();
 
-        let mut squares_attacked_by_white = HashSet::from([
+        let squares_attacked_by_white = HashSet::from([
             Square::B1, // rook on a1
             Square::C1, // rook on a1
             Square::D1, // knight on c3 + king on e1
@@ -878,7 +914,7 @@ mod tests {
             assert!(!board.is_square_attacked(*sq, Color::White));
         }
 
-        let mut squares_attacked_by_black = HashSet::from([
+        let squares_attacked_by_black = HashSet::from([
             Square::B8, // rook on a8
             Square::C8, // queen on d8 + bishop on f5
             Square::D8, // king on e8

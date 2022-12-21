@@ -158,6 +158,23 @@ impl Piece {
         IS_MAJOR_PIECE[self as usize]
     }
 
+    pub fn color(&self) -> Color {
+        match self {
+            Piece::WhitePawn
+            | Piece::WhiteKnight
+            | Piece::WhiteBishop
+            | Piece::WhiteRook
+            | Piece::WhiteQueen
+            | Piece::WhiteKing => Color::White,
+            Piece::BlackPawn
+            | Piece::BlackKnight
+            | Piece::BlackBishop
+            | Piece::BlackRook
+            | Piece::BlackQueen
+            | Piece::BlackKing => Color::Black,
+        }
+    }
+
     pub fn attack_direction_idx(&self) -> Range<usize> {
         match self {
             Piece::WhitePawn => 4..6,
