@@ -159,10 +159,6 @@ impl Board {
         }
     }
 
-    pub fn taken(&self) -> Bitboard {
-        self.bitboard_union()
-    }
-
     fn sq_taken(&self, sq: Square) -> bool {
         (self.bitboard_union() & sq.into()).0 != 0x0
     }
@@ -191,7 +187,7 @@ impl Board {
 
     pub fn add_piece(&mut self, piece: Piece, sq: Square) -> Result<(), SquareTakenError> {
         let sq_bb: Bitboard = sq.into();
-        if (self.taken() & sq_bb).0 != 0x0 {
+        if self.sq_taken(sq) {
             Err(SquareTakenError::new(sq))
         } else {
             match piece {
@@ -215,7 +211,7 @@ impl Board {
     // do we really need to specify the piece here?
     pub fn remove_piece(&mut self, piece: Piece, sq: Square) -> Result<(), NoPieceOnSquareError> {
         let sq_bb: Bitboard = sq.into();
-        if (self.taken() & sq_bb).0 == 0x0 {
+        if !self.sq_taken(sq) {
             Err(NoPieceOnSquareError::new(sq))
         } else {
             match piece {
@@ -495,10 +491,11 @@ impl Board {
         for dir in dirs {
             let mailbox_no = sq + (dir as i8 * depth);
             if mailbox_no > 0 {
-                let other_sq_bb: Bitboard = Square::from_mailbox_no(mailbox_no).into();
+                let other_sq = Square::from_mailbox_no(mailbox_no);
+                let other_sq_bb: Bitboard = other_sq.into();
                 if (other_sq_bb & attack_bb).0 != 0x0 {
                     return true;
-                } else if (other_sq_bb & self.taken()).0 == 0x0 {
+                } else if !self.sq_taken(other_sq) {
                     to_search.push(dir);
                 }
             }
@@ -654,31 +651,38 @@ mod tests {
     #[test]
     fn test_empty_board() {
         let board = Board::empty();
-        assert_eq!(board.taken(), Bitboard::empty());
+        assert_eq!(board.bitboard_union(), Bitboard::empty());
     }
 
     #[test]
-    fn test_taken() {
+    fn test_bitboard_union() {
         let mut board = Board::empty();
         let _ = board.add_piece(Piece::BlackQueen, Square::B1);
-        assert_eq!(board.taken(), Bitboard(0b10));
+        assert_eq!(board.bitboard_union(), Bitboard(0b10));
+    }
+
+    #[test]
+    fn test_sq_taken() {
+        let mut board = Board::empty();
+        let _ = board.add_piece(Piece::BlackQueen, Square::B1);
+        assert!(board.sq_taken(Square::B1));
     }
 
     #[test]
     fn test_add_piece() {
         let mut board = Board::empty();
-        assert_eq!(board.taken(), Bitboard::empty());
+        assert_eq!(board.bitboard_union(), Bitboard::empty());
         let _ = board.add_piece(Piece::BlackQueen, Square::B1);
-        assert_eq!(board.taken(), Bitboard(0b10));
+        assert_eq!(board.bitboard_union(), Bitboard(0b10));
     }
 
     #[test]
     fn test_remove_piece() {
         let mut board = Board::empty();
         let _ = board.add_piece(Piece::BlackQueen, Square::B1);
-        assert_eq!(board.taken(), Bitboard(0b10));
+        assert_eq!(board.bitboard_union(), Bitboard(0b10));
         let _ = board.remove_piece(Piece::BlackQueen, Square::B1);
-        assert_eq!(board.taken(), Bitboard::empty());
+        assert_eq!(board.bitboard_union(), Bitboard::empty());
         assert!(board.remove_piece(Piece::BlackQueen, Square::B1).is_err());
     }
 
