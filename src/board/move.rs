@@ -7,8 +7,8 @@ use crate::board::{
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Move {
-    repr: u32,
-    score: i8,
+    pub repr: u32,
+    pub score: i8,
 }
 
 impl fmt::Display for Move {

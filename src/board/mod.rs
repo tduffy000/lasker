@@ -321,6 +321,8 @@ impl Board {
     }
 
     // TODO (tcd 12/21/22): only promotes to Queens rn
+    // TODO (tcd 12/21/22): optimization opportunity: return a ring buffer or something
+    // already alloc'ed as opposed to a Vec<>; also this could be multi-threaded?
     pub fn legal_moves(&self, color: Color) -> Vec<Move> {
         let mut moves = vec![];
         for piece in self.pieces(color) {
@@ -479,21 +481,54 @@ impl Board {
                                     let captured = self.piece(&other_sq);
                                     moves.push(Move::new(
                                         sq, other_sq, captured, None, false, false, false,
-                                    ))
+                                    ));
                                 }
                             }
                         }
                     }
-                    // pieces that can slide
-                    Piece::WhiteBishop | Piece::BlackBishop => (),
-                    Piece::WhiteRook | Piece::BlackRook => (),
-                    Piece::WhiteQueen | Piece::BlackQueen => (),
+                    Piece::WhiteBishop
+                    | Piece::BlackBishop
+                    | Piece::WhiteRook
+                    | Piece::BlackRook
+                    | Piece::WhiteQueen
+                    | Piece::BlackQueen => {
+                        let dirs = &DIRECTIONS[piece.attack_direction_idx()].to_vec();
+                        let color = piece.color();
+                        self.recur_move_search(color, dirs, &mut moves, sq, 1);
+                    }
                     // pieces that can't move into attack
                     Piece::WhiteKing | Piece::BlackKing => (),
                 };
             }
         }
         moves
+    }
+
+    fn recur_move_search(
+        &self,
+        color: Color,
+        dirs: &Vec<Direction>,
+        moves: &mut Vec<Move>,
+        sq: Square,
+        depth: i8,
+    ) -> () {
+        let mut to_search = vec![];
+        for dir in dirs {
+            let mailbox_no = sq + (*dir as i8 * depth);
+            if mailbox_no > 0 {
+                let other_sq = Square::from_mailbox_no(mailbox_no);
+                if !self.sq_taken_by_color(other_sq, color) {
+                    let captured = self.piece(&other_sq);
+                    moves.push(Move::new(sq, other_sq, captured, None, false, false, false));
+                    if captured.is_none() {
+                        to_search.push(*dir)
+                    }
+                }
+            }
+        }
+        if !to_search.is_empty() {
+            return self.recur_move_search(color, &to_search, moves, sq, depth + 1);
+        }
     }
 
     fn recur_attack_sq_search(
@@ -723,7 +758,7 @@ mod tests {
 
     #[test]
     fn test_board_legal_moves() {
-        let fen = "5r2/1k1P1pP1/8/7n/8/1p6/PP2p3/1K3N2";
+        let fen = "5r2/1k1P1pP1/4q1BB/7n/6p1/1p2Q2b/PP2p3/1K3N2";
         let board = Board::from_fen(fen).unwrap();
         let mut white_moves = board.legal_moves(Color::White);
         let mut black_moves = board.legal_moves(Color::Black);
@@ -770,9 +805,87 @@ mod tests {
             ),
             // knights
             Move::new(Square::F1, Square::D2, None, None, false, false, false),
-            Move::new(Square::F1, Square::E3, None, None, false, false, false),
             Move::new(Square::F1, Square::G3, None, None, false, false, false),
             Move::new(Square::F1, Square::H2, None, None, false, false, false),
+            // bishops
+            Move::new(Square::G6, Square::H7, None, None, false, false, false),
+            Move::new(
+                Square::G6,
+                Square::F7,
+                Some(Piece::BlackPawn),
+                None,
+                false,
+                false,
+                false,
+            ),
+            Move::new(
+                Square::G6,
+                Square::H5,
+                Some(Piece::BlackKnight),
+                None,
+                false,
+                false,
+                false,
+            ),
+            Move::new(Square::G6, Square::F5, None, None, false, false, false),
+            Move::new(Square::G6, Square::E4, None, None, false, false, false),
+            Move::new(Square::G6, Square::D3, None, None, false, false, false),
+            Move::new(Square::G6, Square::C2, None, None, false, false, false),
+            Move::new(Square::H6, Square::G5, None, None, false, false, false),
+            Move::new(Square::H6, Square::F4, None, None, false, false, false),
+            // queen
+            Move::new(Square::E3, Square::F3, None, None, false, false, false),
+            Move::new(Square::E3, Square::G3, None, None, false, false, false),
+            Move::new(
+                Square::E3,
+                Square::H3,
+                Some(Piece::BlackBishop),
+                None,
+                false,
+                false,
+                false,
+            ),
+            Move::new(Square::E3, Square::D3, None, None, false, false, false),
+            Move::new(Square::E3, Square::C3, None, None, false, false, false),
+            Move::new(
+                Square::E3,
+                Square::B3,
+                Some(Piece::BlackPawn),
+                None,
+                false,
+                false,
+                false,
+            ),
+            Move::new(Square::E3, Square::D2, None, None, false, false, false),
+            Move::new(Square::E3, Square::C1, None, None, false, false, false),
+            Move::new(Square::E3, Square::F2, None, None, false, false, false),
+            Move::new(Square::E3, Square::G1, None, None, false, false, false),
+            Move::new(Square::E3, Square::F4, None, None, false, false, false),
+            Move::new(Square::E3, Square::G5, None, None, false, false, false),
+            Move::new(Square::E3, Square::D4, None, None, false, false, false),
+            Move::new(Square::E3, Square::C5, None, None, false, false, false),
+            Move::new(Square::E3, Square::B6, None, None, false, false, false),
+            Move::new(Square::E3, Square::A7, None, None, false, false, false),
+            Move::new(Square::E3, Square::E4, None, None, false, false, false),
+            Move::new(Square::E3, Square::E5, None, None, false, false, false),
+            Move::new(
+                Square::E3,
+                Square::E6,
+                Some(Piece::BlackQueen),
+                None,
+                false,
+                false,
+                false,
+            ),
+            Move::new(
+                Square::E3,
+                Square::E2,
+                Some(Piece::BlackPawn),
+                None,
+                false,
+                false,
+                false,
+            ),
         ];
 
         let mut expected_black_moves = vec![
@@ -806,6 +919,16 @@ mod tests {
             ),
             Move::new(Square::F7, Square::F6, None, None, false, false, false),
             Move::new(Square::F7, Square::F5, None, None, false, true, false),
+            Move::new(
+                Square::F7,
+                Square::G6,
+                Some(Piece::WhiteBishop),
+                None,
+                false,
+                false,
+                false,
+            ),
+            Move::new(Square::G4, Square::G3, None, None, false, false, false),
             // knights
             Move::new(
                 Square::H5,
@@ -819,6 +942,65 @@ mod tests {
             Move::new(Square::H5, Square::F6, None, None, false, false, false),
             Move::new(Square::H5, Square::F4, None, None, false, false, false),
             Move::new(Square::H5, Square::G3, None, None, false, false, false),
+            // rooks
+            Move::new(Square::F8, Square::E8, None, None, false, false, false),
+            Move::new(Square::F8, Square::D8, None, None, false, false, false),
+            Move::new(Square::F8, Square::C8, None, None, false, false, false),
+            Move::new(Square::F8, Square::B8, None, None, false, false, false),
+            Move::new(Square::F8, Square::A8, None, None, false, false, false),
+            Move::new(Square::F8, Square::G8, None, None, false, false, false),
+            Move::new(Square::F8, Square::H8, None, None, false, false, false),
+            // bishops
+            Move::new(Square::H3, Square::G2, None, None, false, false, false),
+            Move::new(
+                Square::H3,
+                Square::F1,
+                Some(Piece::WhiteKnight),
+                None,
+                false,
+                false,
+                false,
+            ),
+            // queen
+            Move::new(Square::E6, Square::E7, None, None, false, false, false),
+            Move::new(Square::E6, Square::E8, None, None, false, false, false),
+            Move::new(Square::E6, Square::E5, None, None, false, false, false),
+            Move::new(Square::E6, Square::E4, None, None, false, false, false),
+            Move::new(
+                Square::E6,
+                Square::E3,
+                Some(Piece::WhiteQueen),
+                None,
+                false,
+                false,
+                false,
+            ),
+            Move::new(Square::E6, Square::F6, None, None, false, false, false),
+            Move::new(
+                Square::E6,
+                Square::G6,
+                Some(Piece::WhiteBishop),
+                None,
+                false,
+                false,
+                false,
+            ),
+            Move::new(Square::E6, Square::D6, None, None, false, false, false),
+            Move::new(Square::E6, Square::C6, None, None, false, false, false),
+            Move::new(Square::E6, Square::B6, None, None, false, false, false),
+            Move::new(Square::E6, Square::A6, None, None, false, false, false),
+            Move::new(Square::E6, Square::F5, None, None, false, false, false),
+            Move::new(Square::E6, Square::D5, None, None, false, false, false),
+            Move::new(Square::E6, Square::C4, None, None, false, false, false),
+            Move::new(
+                Square::E6,
+                Square::D7,
+                Some(Piece::WhitePawn),
+                None,
+                false,
+                false,
+                false,
+            ),
         ];
 
         let (_, _) = (white_moves.sort(), expected_white_moves.sort());
