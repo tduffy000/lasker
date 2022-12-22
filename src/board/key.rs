@@ -107,7 +107,7 @@ mod tests {
         // add a piece
         let _ = state.board.add_piece(Piece::BlackQueen, Square::A4);
         assert_ne!(base_key, key_gen.hash_board(&state));
-        let _ = state.board.remove_piece(Piece::BlackQueen, Square::A4);
+        let _ = state.board.remove_piece(Square::A4);
         assert_eq!(base_key, key_gen.hash_board(&state));
     }
 }

@@ -208,27 +208,27 @@ impl Board {
         }
     }
 
-    // do we really need to specify the piece here?
-    pub fn remove_piece(&mut self, piece: Piece, sq: Square) -> Result<(), NoPieceOnSquareError> {
+    pub fn remove_piece(&mut self, sq: Square) -> Result<Piece, NoPieceOnSquareError> {
         let sq_bb: Bitboard = sq.into();
-        if !self.sq_taken(sq) {
-            Err(NoPieceOnSquareError::new(sq))
-        } else {
-            match piece {
-                Piece::WhitePawn => self.white_pawns ^= sq_bb,
-                Piece::WhiteKnight => self.white_knights ^= sq_bb,
-                Piece::WhiteBishop => self.white_bishops ^= sq_bb,
-                Piece::WhiteRook => self.white_rooks ^= sq_bb,
-                Piece::WhiteQueen => self.white_queens ^= sq_bb,
-                Piece::WhiteKing => self.white_king ^= sq_bb,
-                Piece::BlackPawn => self.black_pawns ^= sq_bb,
-                Piece::BlackKnight => self.black_knights ^= sq_bb,
-                Piece::BlackBishop => self.black_bishops ^= sq_bb,
-                Piece::BlackRook => self.black_rooks ^= sq_bb,
-                Piece::BlackQueen => self.black_queens ^= sq_bb,
-                Piece::BlackKing => self.black_king ^= sq_bb,
+        match self.piece(&sq) {
+            Some(piece) => {
+                match piece {
+                    Piece::WhitePawn => self.white_pawns ^= sq_bb,
+                    Piece::WhiteKnight => self.white_knights ^= sq_bb,
+                    Piece::WhiteBishop => self.white_bishops ^= sq_bb,
+                    Piece::WhiteRook => self.white_rooks ^= sq_bb,
+                    Piece::WhiteQueen => self.white_queens ^= sq_bb,
+                    Piece::WhiteKing => self.white_king ^= sq_bb,
+                    Piece::BlackPawn => self.black_pawns ^= sq_bb,
+                    Piece::BlackKnight => self.black_knights ^= sq_bb,
+                    Piece::BlackBishop => self.black_bishops ^= sq_bb,
+                    Piece::BlackRook => self.black_rooks ^= sq_bb,
+                    Piece::BlackQueen => self.black_queens ^= sq_bb,
+                    Piece::BlackKing => self.black_king ^= sq_bb,
+                }
+                Ok(piece)
             }
-            Ok(())
+            None => Err(NoPieceOnSquareError::new(sq)),
         }
     }
 
@@ -747,9 +747,9 @@ mod tests {
         let mut board = Board::empty();
         let _ = board.add_piece(Piece::BlackQueen, Square::B1);
         assert_eq!(board.bitboard_union(), Bitboard(0b10));
-        let _ = board.remove_piece(Piece::BlackQueen, Square::B1);
+        let _ = board.remove_piece(Square::B1);
         assert_eq!(board.bitboard_union(), Bitboard::empty());
-        assert!(board.remove_piece(Piece::BlackQueen, Square::B1).is_err());
+        assert!(board.remove_piece(Square::B1).is_err());
     }
 
     #[test]
@@ -1059,7 +1059,7 @@ mod tests {
             board_two.material(Color::Black),
             8 * 100 + 2 * 325 + 2 * 325 + 2 * 550 + 1000 + 50000
         );
-        let _ = board_two.remove_piece(Piece::BlackQueen, Square::D8);
+        let _ = board_two.remove_piece(Square::D8);
         assert_eq!(
             board_two.material(Color::White),
             8 * 100 + 2 * 325 + 2 * 325 + 2 * 550 + 1000 + 50000
