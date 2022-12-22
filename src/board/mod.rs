@@ -496,8 +496,24 @@ impl Board {
                         let color = piece.color();
                         self.recur_move_search(color, dirs, &mut moves, sq, 1);
                     }
-                    // pieces that can't move into attack
-                    Piece::WhiteKing | Piece::BlackKing => (),
+                    Piece::WhiteKing | Piece::BlackKing => {
+                        let dirs = &DIRECTIONS[piece.attack_direction_idx()];
+                        for dir in dirs {
+                            let target_sq_mailbox_no = sq + *dir as i8;
+                            // missing b1a1?
+                            if target_sq_mailbox_no >= 0 {
+                                let other_sq = Square::from_mailbox_no(target_sq_mailbox_no);
+                                if !self.sq_taken_by_color(other_sq, piece.color())
+                                    & !self.is_square_attacked(other_sq, piece.opposing_color())
+                                {
+                                    let captured = self.piece(&other_sq);
+                                    moves.push(Move::new(
+                                        sq, other_sq, captured, None, false, false, false,
+                                    ));
+                                }
+                            }
+                        }
+                    }
                 };
             }
         }
@@ -515,7 +531,7 @@ impl Board {
         let mut to_search = vec![];
         for dir in dirs {
             let mailbox_no = sq + (*dir as i8 * depth);
-            if mailbox_no > 0 {
+            if mailbox_no >= 0 {
                 let other_sq = Square::from_mailbox_no(mailbox_no);
                 if !self.sq_taken_by_color(other_sq, color) {
                     let captured = self.piece(&other_sq);
@@ -541,7 +557,7 @@ impl Board {
         let mut to_search = vec![];
         for dir in dirs {
             let mailbox_no = sq + (dir as i8 * depth);
-            if mailbox_no > 0 {
+            if mailbox_no >= 0 {
                 let other_sq = Square::from_mailbox_no(mailbox_no);
                 let other_sq_bb: Bitboard = other_sq.into();
                 if (other_sq_bb & attack_bb).0 != 0x0 {
@@ -574,7 +590,7 @@ impl Board {
             if !piece.can_slide() {
                 for dir in attack_dirs {
                     let mailbox_no = sq + dir as i8;
-                    if mailbox_no > 0 {
+                    if mailbox_no >= 0 {
                         let other_sq_bb: Bitboard = Square::from_mailbox_no(mailbox_no).into();
                         if (other_sq_bb & attack_bb).0 != 0x0 {
                             return true;
@@ -886,6 +902,9 @@ mod tests {
                 false,
                 false,
             ),
+            // king
+            Move::new(Square::B1, Square::A1, None, None, false, false, false),
+            Move::new(Square::B1, Square::C1, None, None, false, false, false),
         ];
 
         let mut expected_black_moves = vec![
@@ -1001,6 +1020,12 @@ mod tests {
                 false,
                 false,
             ),
+            // king
+            Move::new(Square::B7, Square::B8, None, None, false, false, false),
+            Move::new(Square::B7, Square::A8, None, None, false, false, false),
+            Move::new(Square::B7, Square::A6, None, None, false, false, false),
+            Move::new(Square::B7, Square::C6, None, None, false, false, false),
+            Move::new(Square::B7, Square::C7, None, None, false, false, false),
         ];
 
         let (_, _) = (white_moves.sort(), expected_white_moves.sort());

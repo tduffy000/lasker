@@ -175,6 +175,13 @@ impl Piece {
         }
     }
 
+    pub fn opposing_color(&self) -> Color {
+        match self.color() {
+            Color::White => Color::Black,
+            Color::Black => Color::White,
+        }
+    }
+
     pub fn attack_direction_idx(&self) -> Range<usize> {
         match self {
             Piece::WhitePawn => 4..6,
