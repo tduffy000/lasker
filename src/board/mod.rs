@@ -354,7 +354,7 @@ impl Board {
                         // en passant
 
                         // normal forward & promotion
-                        if fwd_mailbox_no > 0 {
+                        if fwd_mailbox_no >= 0 {
                             let fwd_sq = Square::from_mailbox_no(fwd_mailbox_no);
                             let promoted = if sq.rank() == Rank::Rank7 {
                                 Some(Piece::WhiteQueen)
@@ -370,7 +370,7 @@ impl Board {
 
                         // capture + capture promotion
                         let left_diag_mailbox_no = sq + Direction::NorthWest as i8;
-                        if left_diag_mailbox_no > 0 {
+                        if left_diag_mailbox_no >= 0 {
                             let ld_sq = Square::from_mailbox_no(left_diag_mailbox_no);
                             if self.sq_taken_by_color(ld_sq, Color::Black) {
                                 let captured = self.piece(&ld_sq);
@@ -385,7 +385,7 @@ impl Board {
                             }
                         };
                         let right_diag_mailbox_no = sq + Direction::NorthEast as i8;
-                        if right_diag_mailbox_no > 0 {
+                        if right_diag_mailbox_no >= 0 {
                             let rd_sq = Square::from_mailbox_no(right_diag_mailbox_no);
                             if self.sq_taken_by_color(rd_sq, Color::Black) {
                                 let captured = self.piece(&rd_sq);
@@ -425,7 +425,7 @@ impl Board {
                         // en passant
 
                         // normal forward & promotion
-                        if fwd_mailbox_no > 0 {
+                        if fwd_mailbox_no >= 0 {
                             let fwd_sq = Square::from_mailbox_no(fwd_mailbox_no);
                             let promoted = if sq.rank() == Rank::Rank2 {
                                 Some(Piece::BlackQueen)
@@ -441,7 +441,7 @@ impl Board {
 
                         // capture + capture promotion
                         let left_diag_mailbox_no = sq + Direction::SouthWest as i8;
-                        if left_diag_mailbox_no > 0 {
+                        if left_diag_mailbox_no >= 0 {
                             let ld_sq = Square::from_mailbox_no(left_diag_mailbox_no);
                             if self.sq_taken_by_color(ld_sq, Color::White) {
                                 let captured = self.piece(&ld_sq);
@@ -456,7 +456,7 @@ impl Board {
                             }
                         };
                         let right_diag_mailbox_no = sq + Direction::SouthEast as i8;
-                        if right_diag_mailbox_no > 0 {
+                        if right_diag_mailbox_no >= 0 {
                             let rd_sq = Square::from_mailbox_no(right_diag_mailbox_no);
                             if self.sq_taken_by_color(rd_sq, Color::White) {
                                 let captured = self.piece(&rd_sq);
@@ -475,7 +475,7 @@ impl Board {
                         let dirs = &DIRECTIONS[piece.attack_direction_idx()];
                         for dir in dirs {
                             let target_sq_mailbox_no = sq + *dir as i8;
-                            if target_sq_mailbox_no > 0 {
+                            if target_sq_mailbox_no >= 0 {
                                 let other_sq = Square::from_mailbox_no(target_sq_mailbox_no);
                                 if !self.sq_taken_by_color(other_sq, piece.color()) {
                                     let captured = self.piece(&other_sq);
@@ -500,7 +500,6 @@ impl Board {
                         let dirs = &DIRECTIONS[piece.attack_direction_idx()];
                         for dir in dirs {
                             let target_sq_mailbox_no = sq + *dir as i8;
-                            // missing b1a1?
                             if target_sq_mailbox_no >= 0 {
                                 let other_sq = Square::from_mailbox_no(target_sq_mailbox_no);
                                 if !self.sq_taken_by_color(other_sq, piece.color())

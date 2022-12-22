@@ -618,7 +618,7 @@ mod tests {
     fn test_direction_valid_moves() {
         // move a rook on b5 to the left
         let mailbox_no = Square::B5 + Direction::West as i8;
-        assert!(mailbox_no > 0);
+        assert!(mailbox_no >= 0);
         let sq = SQUARES[mailbox_no as usize];
         assert_eq!(sq, Square::A5);
 
