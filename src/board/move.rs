@@ -13,6 +13,7 @@ pub struct Move {
 
 impl fmt::Display for Move {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        // TODO: repr castling here
         let from_file = &self.from_sq().file();
         let from_rank = &self.from_sq().rank();
         let to_file = &self.to_sq().file();

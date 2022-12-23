@@ -107,8 +107,6 @@ impl BoardState {
                             }
                         }
 
-                        // en passant
-
                         // normal forward & promotion
                         if fwd_mailbox_no >= 0 {
                             let fwd_sq = Square::from_mailbox_no(fwd_mailbox_no);
@@ -138,6 +136,20 @@ impl BoardState {
                                 moves.push(Move::new(
                                     sq, ld_sq, captured, promoted, false, false, false,
                                 ));
+                            } else {
+                                if let Some(ep_sq) = self.en_passant {
+                                    if ld_sq == ep_sq {
+                                        moves.push(Move::new(
+                                            sq,
+                                            ld_sq,
+                                            Some(Piece::BlackPawn),
+                                            None,
+                                            true,
+                                            false,
+                                            false,
+                                        ))
+                                    }
+                                }
                             }
                         };
                         let right_diag_mailbox_no = sq + Direction::NorthEast as i8;
@@ -153,6 +165,20 @@ impl BoardState {
                                 moves.push(Move::new(
                                     sq, rd_sq, captured, promoted, false, false, false,
                                 ));
+                            } else {
+                                if let Some(ep_sq) = self.en_passant {
+                                    if rd_sq == ep_sq {
+                                        moves.push(Move::new(
+                                            sq,
+                                            rd_sq,
+                                            Some(Piece::BlackPawn),
+                                            None,
+                                            true,
+                                            false,
+                                            false,
+                                        ))
+                                    }
+                                }
                             }
                         }
                     }
@@ -177,8 +203,6 @@ impl BoardState {
                                 ));
                             }
                         }
-
-                        // en passant
 
                         // normal forward & promotion
                         if fwd_mailbox_no >= 0 {
@@ -209,6 +233,20 @@ impl BoardState {
                                 moves.push(Move::new(
                                     sq, ld_sq, captured, promoted, false, false, false,
                                 ));
+                            } else {
+                                if let Some(ep_sq) = self.en_passant {
+                                    if ld_sq == ep_sq {
+                                        moves.push(Move::new(
+                                            sq,
+                                            ld_sq,
+                                            Some(Piece::WhitePawn),
+                                            None,
+                                            true,
+                                            false,
+                                            false,
+                                        ))
+                                    }
+                                }
                             }
                         };
                         let right_diag_mailbox_no = sq + Direction::SouthEast as i8;
@@ -224,6 +262,20 @@ impl BoardState {
                                 moves.push(Move::new(
                                     sq, rd_sq, captured, promoted, false, false, false,
                                 ));
+                            } else {
+                                if let Some(ep_sq) = self.en_passant {
+                                    if rd_sq == ep_sq {
+                                        moves.push(Move::new(
+                                            sq,
+                                            rd_sq,
+                                            Some(Piece::WhitePawn),
+                                            None,
+                                            true,
+                                            false,
+                                            false,
+                                        ))
+                                    }
+                                }
                             }
                         }
                     }
@@ -253,6 +305,7 @@ impl BoardState {
                         utils::recur_move_search(&self.board, color, dirs, &mut moves, sq, 1);
                     }
                     Piece::WhiteKing | Piece::BlackKing => {
+                        // normal moves
                         let dirs = &DIRECTIONS[piece.attack_direction_idx()];
                         for dir in dirs {
                             let target_sq_mailbox_no = sq + *dir as i8;
@@ -266,6 +319,77 @@ impl BoardState {
                                     let captured = self.board.piece(&other_sq);
                                     moves.push(Move::new(
                                         sq, other_sq, captured, None, false, false, false,
+                                    ));
+                                }
+                            }
+                        }
+                        // castling
+                        match piece.color() {
+                            Color::White => {
+                                if self.castling_permissions.white_kingside()
+                                    & !self.board.sq_taken(Square::F1)
+                                    & !self.board.sq_taken(Square::G1)
+                                    & !self.board.is_square_attacked(Square::F1, Color::Black)
+                                    & !self.board.is_square_attacked(Square::G1, Color::Black)
+                                {
+                                    moves.push(Move::new(
+                                        Square::E1,
+                                        Square::G1,
+                                        None,
+                                        None,
+                                        false,
+                                        false,
+                                        true,
+                                    ));
+                                }
+                                if self.castling_permissions.white_queenside()
+                                    & !self.board.sq_taken(Square::C1)
+                                    & !self.board.sq_taken(Square::D1)
+                                    & !self.board.is_square_attacked(Square::C1, Color::Black)
+                                    & !self.board.is_square_attacked(Square::D1, Color::Black)
+                                {
+                                    moves.push(Move::new(
+                                        Square::E1,
+                                        Square::C1,
+                                        None,
+                                        None,
+                                        false,
+                                        false,
+                                        true,
+                                    ));
+                                }
+                            }
+                            Color::Black => {
+                                if self.castling_permissions.black_kingside()
+                                    & !self.board.sq_taken(Square::F8)
+                                    & !self.board.sq_taken(Square::G8)
+                                    & !self.board.is_square_attacked(Square::F8, Color::White)
+                                    & !self.board.is_square_attacked(Square::G8, Color::White)
+                                {
+                                    moves.push(Move::new(
+                                        Square::E8,
+                                        Square::G8,
+                                        None,
+                                        None,
+                                        false,
+                                        false,
+                                        true,
+                                    ));
+                                }
+                                if self.castling_permissions.black_queenside()
+                                    & !self.board.sq_taken(Square::C8)
+                                    & !self.board.sq_taken(Square::D8)
+                                    & !self.board.is_square_attacked(Square::C8, Color::White)
+                                    & !self.board.is_square_attacked(Square::D8, Color::White)
+                                {
+                                    moves.push(Move::new(
+                                        Square::E8,
+                                        Square::C8,
+                                        None,
+                                        None,
+                                        false,
+                                        false,
+                                        true,
                                     ));
                                 }
                             }
@@ -297,13 +421,15 @@ impl Default for BoardState {
 mod tests {
 
     use super::*;
-    
+
     #[test]
     fn test_board_state_from_fen() {
         let start_state = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
         let parsed_state = BoardState::from_fen(start_state).unwrap();
         assert_eq!(parsed_state, BoardState::default());
     }
+
+    // TODO (tcd 12/23/22): test for en passant + castling
 
     #[test]
     fn test_board_state_legal_moves() {
