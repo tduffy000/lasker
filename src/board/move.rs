@@ -5,6 +5,8 @@ use crate::board::{
     types::{Piece, Square},
 };
 
+const MOVE_LIST_SIZE: usize = 255;
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Move {
     repr: u32,
@@ -115,6 +117,60 @@ impl Move {
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct MoveList {
+    inner: [Move; MOVE_LIST_SIZE],
+    count: u8,
+    pos: u8,
+}
+
+impl Iterator for MoveList {
+    type Item = Move;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.pos == self.count {
+            None
+        } else {
+            let idx = self.pos as usize;
+            self.pos += 1;
+            Some(self.inner[idx])
+        }
+    }
+}
+
+impl MoveList {
+    pub fn new(v: Vec<Move>) -> MoveList {
+        let mut l = MoveList::empty();
+        for el in v {
+            l.push(el)
+        }
+        l
+    }
+
+    pub fn empty() -> MoveList {
+        MoveList {
+            inner: [Move::empty(); MOVE_LIST_SIZE],
+            count: 0,
+            pos: 0,
+        }
+    }
+
+    pub fn sorted(&self) -> MoveList {
+        let mut v = self.inner.to_vec();
+        let _ = v.sort();
+        MoveList::new(v)
+    }
+
+    pub fn push(&mut self, mv: Move) -> () {
+        if self.count == MOVE_LIST_SIZE as u8 {
+            panic!("MoveList full!");
+        } else {
+            self.inner[self.count as usize] = mv;
+            self.count += 1;
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
 
@@ -199,5 +255,23 @@ mod tests {
         assert!(!mv.en_passant());
         assert!(!mv.pawn_start());
         assert!(mv.castle());
+    }
+
+    #[test]
+    fn test_move_list_push() {
+        let mut l = MoveList::empty();
+        assert_eq!(l.count, 0);
+        l.push(Move::empty());
+        l.push(Move::empty());
+        assert_eq!(l.count, 2);
+    }
+
+    #[test]
+    fn test_move_list_iter() {
+        let mut l = MoveList::empty();
+        assert_eq!(l.clone().count(), 0);
+        l.push(Move::empty());
+        l.push(Move::empty());
+        assert_eq!(l.clone().count(), 2);
     }
 }

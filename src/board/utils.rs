@@ -5,6 +5,8 @@ use crate::board::{
     types::{Color, Direction, Square},
 };
 
+use super::r#move::MoveList;
+
 // can use Kernighan's algo here
 pub fn set_bits(b: u64) -> Vec<usize> {
     let mut v = Vec::new();
@@ -20,7 +22,7 @@ pub fn recur_move_search(
     board: &Board,
     color: Color,
     dirs: &Vec<Direction>,
-    moves: &mut Vec<Move>,
+    moves: &mut MoveList,
     sq: Square,
     depth: i8,
 ) -> () {

@@ -13,7 +13,7 @@ use bitboard::Bitboard;
 use board::Board;
 use constants::DIRECTIONS;
 use error::FENParsingError;
-use r#move::Move;
+use r#move::{Move, MoveList};
 use types::{CastlingRights, Color, Direction, Piece, Rank, Square};
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
@@ -79,8 +79,8 @@ impl BoardState {
         todo!()
     }
 
-    pub fn legal_moves(&self, color: Color) -> Vec<Move> {
-        let mut moves = vec![];
+    pub fn legal_moves(&self, color: Color) -> MoveList {
+        let mut moves = MoveList::empty();
         for piece in self.board.pieces(color) {
             let piece_squares: Vec<Square> = self.board.bitboard(piece).into();
             for sq in piece_squares {
@@ -438,7 +438,7 @@ mod tests {
         let mut white_moves = board_state.legal_moves(Color::White);
         let mut black_moves = board_state.legal_moves(Color::Black);
 
-        let mut expected_white_moves = vec![
+        let mut expected_white_moves = MoveList::new(vec![
             // pawns
             Move::new(Square::A2, Square::A3, None, None, false, false, false),
             Move::new(Square::A2, Square::A4, None, None, false, true, false),
@@ -564,9 +564,9 @@ mod tests {
             // king
             Move::new(Square::B1, Square::A1, None, None, false, false, false),
             Move::new(Square::B1, Square::C1, None, None, false, false, false),
-        ];
+        ]);
 
-        let mut expected_black_moves = vec![
+        let mut expected_black_moves = MoveList::new(vec![
             // pawns
             Move::new(
                 Square::B3,
@@ -685,11 +685,9 @@ mod tests {
             Move::new(Square::B7, Square::A6, None, None, false, false, false),
             Move::new(Square::B7, Square::C6, None, None, false, false, false),
             Move::new(Square::B7, Square::C7, None, None, false, false, false),
-        ];
+        ]);
 
-        let (_, _) = (white_moves.sort(), expected_white_moves.sort());
-        let (_, _) = (black_moves.sort(), expected_black_moves.sort());
-        assert_eq!(white_moves, expected_white_moves);
-        assert_eq!(black_moves, expected_black_moves);
+        assert_eq!(white_moves.sorted(), expected_white_moves.sorted());
+        assert_eq!(black_moves.sorted(), expected_black_moves.sorted());
     }
 }
