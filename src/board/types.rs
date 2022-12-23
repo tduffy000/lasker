@@ -454,6 +454,7 @@ impl TryFrom<char> for CastlingRight {
     }
 }
 
+// bits = [ wK, wQ, bK, bQ ]
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct CastlingRights(pub u8);
 
@@ -469,6 +470,22 @@ impl CastlingRights {
         }
 
         Ok(rights)
+    }
+
+    pub fn white_kingside(&self) -> bool {
+        &self.0 & 0b1 == 0b1
+    }
+
+    pub fn white_queenside(&self) -> bool {
+        (&self.0 >> 1) & 0b1 == 0b1
+    }
+
+    pub fn black_kingside(&self) -> bool {
+        (&self.0 >> 2) & 0b1 == 0b1
+    }
+
+    pub fn black_queenside(&self) -> bool {
+        (&self.0 >> 3) & 0b1 == 0b1
     }
 }
 
@@ -612,6 +629,35 @@ mod tests {
         assert_eq!(all_rights.0, 0b1111);
 
         assert!(CastlingRights::from_fen("X").is_err());
+    }
+
+    #[test]
+    fn test_castling_rights_getters() {
+        let white_queenside = "Q";
+        let all = "KQkq";
+
+        let empty_rights = CastlingRights::from_fen("").unwrap();
+        let wq = CastlingRights::from_fen(white_queenside).unwrap();
+        let all_rights = CastlingRights::from_fen(all).unwrap();
+
+        assert!(
+            !empty_rights.white_kingside()
+                & !empty_rights.white_queenside()
+                & !empty_rights.black_kingside()
+                & !empty_rights.black_queenside()
+        );
+        assert!(
+            !wq.white_kingside()
+                & wq.white_queenside()
+                & !wq.black_kingside()
+                & !wq.black_queenside()
+        );
+        assert!(
+            all_rights.white_kingside()
+                & all_rights.white_queenside()
+                & all_rights.black_kingside()
+                & all_rights.black_queenside()
+        );
     }
 
     #[test]
