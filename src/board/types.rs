@@ -15,13 +15,14 @@ use crate::board::{
 const FEN_BLANK: &str = "-";
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
+#[repr(u8)]
 pub enum Color {
     White,
     Black,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
-#[repr(usize)]
+#[repr(u8)]
 pub enum File {
     A,
     B,
@@ -75,7 +76,7 @@ impl TryFrom<char> for File {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
-#[repr(usize)]
+#[repr(u8)]
 pub enum Rank {
     Rank1 = 1,
     Rank2,
@@ -132,7 +133,7 @@ impl TryFrom<char> for Rank {
     }
 }
 
-#[repr(usize)]
+#[repr(u8)]
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Piece {
     WhitePawn,
@@ -259,7 +260,7 @@ impl TryFrom<char> for Piece {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
-#[repr(usize)]
+#[repr(u8)]
 pub enum Square {
     A1 = 0,
     B1,
