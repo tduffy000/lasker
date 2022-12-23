@@ -1,4 +1,4 @@
-use std::{convert::TryFrom, fmt::Debug};
+use std::fmt::Debug;
 
 mod bitboard;
 pub(in crate::board) mod board;
@@ -11,8 +11,8 @@ mod utils;
 
 use bitboard::Bitboard;
 use board::Board;
-use constants::{BLACK_PIECES, DIRECTIONS, FILES, PIECE_VALUES, RANKS, WHITE_PIECES};
-use error::{FENParsingError, NoPieceOnSquareError, SquareTakenError};
+use constants::DIRECTIONS;
+use error::FENParsingError;
 use r#move::Move;
 use types::{CastlingRights, Color, Direction, Piece, Rank, Square};
 
@@ -296,11 +296,8 @@ impl Default for BoardState {
 #[cfg(test)]
 mod tests {
 
-    use std::collections::HashSet;
-
     use super::*;
-    use crate::board::constants::SQUARES;
-
+    
     #[test]
     fn test_board_state_from_fen() {
         let start_state = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
