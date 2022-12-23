@@ -1,3 +1,10 @@
+use crate::board::{
+    bitboard::Bitboard,
+    board::Board,
+    r#move::Move,
+    types::{Color, Direction, Square},
+};
+
 // can use Kernighan's algo here
 pub fn set_bits(b: u64) -> Vec<usize> {
     let mut v = Vec::new();
@@ -7,6 +14,60 @@ pub fn set_bits(b: u64) -> Vec<usize> {
         }
     }
     v
+}
+
+pub fn recur_move_search(
+    board: &Board,
+    color: Color,
+    dirs: &Vec<Direction>,
+    moves: &mut Vec<Move>,
+    sq: Square,
+    depth: i8,
+) -> () {
+    let mut to_search = vec![];
+    for dir in dirs {
+        let mailbox_no = sq + (*dir as i8 * depth);
+        if mailbox_no >= 0 {
+            let other_sq = Square::from_mailbox_no(mailbox_no);
+            if !board.sq_taken_by_color(other_sq, color) {
+                let captured = board.piece(&other_sq);
+                moves.push(Move::new(sq, other_sq, captured, None, false, false, false));
+                if captured.is_none() {
+                    to_search.push(*dir)
+                }
+            }
+        }
+    }
+    if !to_search.is_empty() {
+        return recur_move_search(board, color, &to_search, moves, sq, depth + 1);
+    }
+}
+
+pub fn recur_attack_sq_search(
+    board: &Board,
+    dirs: Vec<Direction>,
+    sq: Square,
+    depth: i8,
+    attack_bb: Bitboard,
+) -> bool {
+    let mut to_search = vec![];
+    for dir in dirs {
+        let mailbox_no = sq + (dir as i8 * depth);
+        if mailbox_no >= 0 {
+            let other_sq = Square::from_mailbox_no(mailbox_no);
+            let other_sq_bb: Bitboard = other_sq.into();
+            if (other_sq_bb & attack_bb).0 != 0x0 {
+                return true;
+            } else if !board.sq_taken(other_sq) {
+                to_search.push(dir);
+            }
+        }
+    }
+    if !to_search.is_empty() {
+        return recur_attack_sq_search(board, to_search, sq, depth + 1, attack_bb);
+    } else {
+        return false;
+    }
 }
 
 #[cfg(test)]
