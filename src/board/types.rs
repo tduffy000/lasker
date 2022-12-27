@@ -488,6 +488,10 @@ impl CastlingRights {
     pub fn black_queenside(&self) -> bool {
         (&self.0 >> 3) & 0b1 == 0b1
     }
+
+    pub fn all() -> CastlingRights {
+        CastlingRights(0b1111)
+    }
 }
 
 #[cfg(test)]

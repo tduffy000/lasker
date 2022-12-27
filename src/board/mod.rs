@@ -14,16 +14,16 @@ use board::Board;
 use constants::DIRECTIONS;
 use error::FENParsingError;
 use r#move::{Move, MoveList};
-use types::{CastlingRights, Color, Direction, Piece, Rank, Square};
+use types::{CastlingRight, CastlingRights, Color, Direction, Piece, Rank, Square};
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct BoardState {
     pub board: Board,
     pub side_to_move: Color,
     pub en_passant: Option<Square>,
-    pub fifty_move_counter: usize,
-    pub ply: usize,
-    pub history_ply: usize,
+    pub fifty_move_counter: u8,
+    pub ply: u8,
+    pub history_ply: u8,
     pub position_key: u64,
     pub castling_permissions: CastlingRights, // bits = [ wK, wQ, bK, bQ ]
 }
@@ -58,7 +58,7 @@ impl BoardState {
         state.en_passant = Square::from_fen(&fields[3])?;
 
         // half move clock
-        match fields[4].parse::<usize>() {
+        match fields[4].parse::<u8>() {
             Ok(num) => {
                 state.history_ply = num;
                 state.ply = num;
@@ -71,14 +71,106 @@ impl BoardState {
         Ok(state)
     }
 
-    pub fn make_move(self, _mv: Move) -> BoardState {
-        todo!()
+    pub fn make_moves<I>(self, moves: I) -> BoardState
+    where
+        I: Iterator<Item = Move>,
+    {
+        let mut state = self.clone();
+        for mv in moves {
+            state = state.make_move(mv);
+        }
+        state
     }
 
-    pub fn unmake_move(self, _mv: Move) -> BoardState {
-        todo!()
+    pub fn make_move(self, mv: Move) -> BoardState {
+        let mut new_state = self.clone();
+        new_state.board.move_piece(mv.from_sq(), mv.to_sq());
+
+        if mv.castle() {
+            if mv.from_sq() == Square::E1 {
+                if mv.to_sq() == Square::G1 {
+                    new_state.board.move_piece(Square::H1, Square::F1).unwrap()
+                } else if mv.to_sq() == Square::C1 {
+                    new_state.board.move_piece(Square::A1, Square::D1).unwrap()
+                }
+                new_state.castling_permissions.0 -=
+                    CastlingRight::WhiteKing as u8 + CastlingRight::WhiteQueen as u8;
+            } else if mv.from_sq() == Square::E8 {
+                if mv.to_sq() == Square::G8 {
+                    new_state.board.move_piece(Square::H8, Square::F8).unwrap()
+                } else if mv.to_sq() == Square::C8 {
+                    new_state.board.move_piece(Square::A8, Square::D8).unwrap()
+                }
+                new_state.castling_permissions.0 -=
+                    CastlingRight::BlackKing as u8 + CastlingRight::BlackQueen as u8;
+            }
+        }
+        if (mv.from_sq() == Square::A1) & (self.board.piece(&Square::A1) == Some(Piece::WhiteRook))
+        {
+            new_state.castling_permissions.0 &=
+                CastlingRights::all().0 - CastlingRight::WhiteQueen as u8;
+        } else if (mv.from_sq() == Square::H1)
+            & (self.board.piece(&Square::H1) == Some(Piece::WhiteRook))
+        {
+            new_state.castling_permissions.0 &=
+                CastlingRights::all().0 - CastlingRight::WhiteKing as u8;
+        } else if (mv.from_sq() == Square::A8)
+            & (self.board.piece(&Square::A8) == Some(Piece::BlackRook))
+        {
+            new_state.castling_permissions.0 &=
+                CastlingRights::all().0 - CastlingRight::BlackQueen as u8;
+        } else if (mv.from_sq() == Square::H8)
+            & (self.board.piece(&Square::H8) == Some(Piece::BlackRook))
+        {
+            new_state.castling_permissions.0 &=
+                CastlingRights::all().0 - CastlingRight::BlackKing as u8;
+        };
+
+        if mv.pawn_start() {
+            let dir = match self.side_to_move {
+                Color::White => Direction::South,
+                Color::Black => Direction::North,
+            };
+            let sq = Square::from_mailbox_no(mv.to_sq() + dir as i8);
+            new_state.en_passant = Some(sq);
+        } else {
+            new_state.en_passant = None;
+        }
+        if mv.en_passant() {
+            let dir = match self.side_to_move {
+                Color::White => Direction::South, // white moving, capture black pawn on sq south of en passant sq
+                Color::Black => Direction::North, // black moving, capture white pawn on sq north of en passant sq
+            };
+            let capture_sq = Square::from_mailbox_no(self.en_passant.unwrap() + dir as i8);
+            let _ = new_state.board.remove_piece(capture_sq).unwrap();
+        }
+
+        // TODO: pos key
+
+        if (mv.captured().is_some())
+            | (self.board.piece(&mv.from_sq()) == Some(Piece::WhitePawn))
+            | (self.board.piece(&mv.from_sq()) == Some(Piece::BlackPawn))
+        {
+            new_state.fifty_move_counter = 0;
+        } else {
+            new_state.fifty_move_counter += 1;
+        }
+
+        if let Some(piece) = mv.promoted() {
+            new_state.board.remove_piece(mv.to_sq());
+            new_state.board.add_piece(piece, mv.to_sq());
+        }
+
+        new_state.ply += 1;
+        new_state.side_to_move = match self.side_to_move {
+            Color::White => Color::Black,
+            Color::Black => Color::White,
+        };
+
+        new_state
     }
 
+    // TODO: I'm not sure we need the Captured def'n the way we've written the move f'n
     pub fn legal_moves(&self, color: Color) -> MoveList {
         let mut moves = MoveList::empty();
         for piece in self.board.pieces(color) {
@@ -420,6 +512,8 @@ impl Default for BoardState {
 #[cfg(test)]
 mod tests {
 
+    use crate::board::constants::PIECE_VALUES;
+
     use super::*;
 
     #[test]
@@ -429,7 +523,221 @@ mod tests {
         assert_eq!(parsed_state, BoardState::default());
     }
 
-    // TODO (tcd 12/23/22): test for en passant + castling
+    #[test]
+    fn test_board_state_make_move() {
+        let ruy_lopez_opening = vec![
+            Move::new(Square::E2, Square::E4, None, None, false, true, false),
+            Move::new(Square::E7, Square::E5, None, None, false, true, false),
+            Move::new(Square::G1, Square::F3, None, None, false, false, false),
+            Move::new(Square::B8, Square::C6, None, None, false, false, false),
+            Move::new(Square::F1, Square::B5, None, None, false, false, false),
+        ];
+        let mut state = BoardState::default();
+        for mv in ruy_lopez_opening {
+            state = state.make_move(mv);
+        }
+        assert_eq!(state.board.piece(&Square::B5), Some(Piece::WhiteBishop));
+        assert!(state.en_passant.is_none());
+        assert_eq!(state.fifty_move_counter, 3);
+        assert_eq!(state.castling_permissions.0, 0b1111);
+
+        let rook_moved_state = state.make_move(Move::new(
+            Square::H1,
+            Square::G1,
+            None,
+            None,
+            false,
+            false,
+            false,
+        ));
+        assert_eq!(
+            rook_moved_state.castling_permissions.0,
+            CastlingRights::all().0 - CastlingRight::WhiteKing as u8
+        );
+    }
+
+    #[test]
+    fn test_board_state_make_move_en_passant() {
+        let fen = "8/3k4/8/8/5p2/8/4P3/3K4 w - - 0 1";
+        let board_state = BoardState::from_fen(fen).unwrap();
+
+        let ep_state = board_state.make_move(Move::new(
+            Square::E2,
+            Square::E4,
+            None,
+            None,
+            false,
+            true,
+            false,
+        ));
+        assert_eq!(ep_state.en_passant, Some(Square::E3));
+        assert_eq!(
+            ep_state.board.material(Color::White),
+            PIECE_VALUES[Piece::WhiteKing as usize] + PIECE_VALUES[Piece::WhitePawn as usize]
+        );
+        assert!(ep_state.board.piece(&Square::E4).is_some());
+        let captured_state = ep_state.make_move(Move::new(
+            Square::F4,
+            Square::E3,
+            Some(Piece::WhitePawn),
+            None,
+            true,
+            false,
+            false,
+        ));
+        assert_eq!(
+            captured_state.board.material(Color::White),
+            PIECE_VALUES[Piece::WhiteKing as usize]
+        );
+        assert!(captured_state.board.piece(&Square::E4).is_none());
+    }
+
+    #[test]
+    fn test_board_state_legal_moves_en_passant() {
+        let fen = "8/3k4/8/8/5p2/8/4P3/3K4 w - - 0 1";
+        let board_state = BoardState::from_fen(fen).unwrap();
+
+        let ep_state = board_state.make_move(Move::new(
+            Square::E2,
+            Square::E4,
+            None,
+            None,
+            false,
+            true,
+            false,
+        ));
+        assert_eq!(
+            ep_state
+                .legal_moves(Color::Black)
+                .filter(|m| m.en_passant())
+                .count(),
+            1
+        );
+    }
+
+    #[test]
+    fn test_board_state_make_move_castling() {
+        let fen = "8/8/8/2bk4/8/8/8/R3K2R w KQ - 0 1";
+        let board_state = BoardState::from_fen(fen).unwrap();
+
+        let white_ks_state = board_state.clone().make_move(Move::new(
+            Square::E1,
+            Square::G1,
+            None,
+            None,
+            false,
+            false,
+            true,
+        ));
+        assert_eq!(
+            white_ks_state.board.piece(&Square::F1),
+            Some(Piece::WhiteRook)
+        );
+        assert_eq!(
+            white_ks_state.board.piece(&Square::G1),
+            Some(Piece::WhiteKing)
+        );
+        let white_qs_state = board_state.clone().make_move(Move::new(
+            Square::E1,
+            Square::C1,
+            None,
+            None,
+            false,
+            false,
+            true,
+        ));
+        assert_eq!(
+            white_qs_state.board.piece(&Square::D1),
+            Some(Piece::WhiteRook)
+        );
+        assert_eq!(
+            white_qs_state.board.piece(&Square::C1),
+            Some(Piece::WhiteKing)
+        );
+
+        let fen = "r3k2r/8/8/2b5/8/8/8/2R1K3 b kq - 0 1";
+        let board_state = BoardState::from_fen(fen).unwrap();
+
+        let black_ks_state = board_state.clone().make_move(Move::new(
+            Square::E8,
+            Square::G8,
+            None,
+            None,
+            false,
+            false,
+            true,
+        ));
+        assert_eq!(
+            black_ks_state.board.piece(&Square::F8),
+            Some(Piece::BlackRook)
+        );
+        assert_eq!(
+            black_ks_state.board.piece(&Square::G8),
+            Some(Piece::BlackKing)
+        );
+        let black_qs_state = board_state.clone().make_move(Move::new(
+            Square::E8,
+            Square::C8,
+            None,
+            None,
+            false,
+            false,
+            true,
+        ));
+        assert_eq!(
+            black_qs_state.board.piece(&Square::D8),
+            Some(Piece::BlackRook)
+        );
+        assert_eq!(
+            black_qs_state.board.piece(&Square::C8),
+            Some(Piece::BlackKing)
+        );
+    }
+
+    #[test]
+    fn test_board_state_legal_moves_castling() {
+        // white
+        let fen = "8/8/8/2bk4/8/8/8/R3K2R w KQ - 0 1";
+        let mut board_state = BoardState::from_fen(fen).unwrap();
+
+        // kingside invalid bishop on B5 attacks, queenside valid
+        assert_eq!(
+            board_state
+                .legal_moves(Color::White)
+                .filter(|m| m.castle())
+                .count(),
+            1
+        );
+        board_state.board.remove_piece(Square::C5);
+        assert_eq!(
+            board_state
+                .legal_moves(Color::White)
+                .filter(|m| m.castle())
+                .count(),
+            2
+        );
+
+        // black
+        // both sides valid
+        let fen = "r3k2r/8/8/2b5/8/8/8/2R1K3 b kq - 0 1";
+        let mut board_state = BoardState::from_fen(fen).unwrap();
+        assert_eq!(
+            board_state
+                .legal_moves(Color::Black)
+                .filter(|m| m.castle())
+                .count(),
+            2
+        );
+        // rm pinning bishop, now queenside travels through attack
+        board_state.board.remove_piece(Square::C5);
+        assert_eq!(
+            board_state
+                .legal_moves(Color::Black)
+                .filter(|m| m.castle())
+                .count(),
+            1
+        );
+    }
 
     #[test]
     fn test_board_state_legal_moves() {

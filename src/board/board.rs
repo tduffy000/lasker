@@ -147,6 +147,17 @@ impl Board {
         }
     }
 
+    pub fn move_piece(&mut self, origin: Square, dest: Square) -> Result<(), SquareTakenError> {
+        if self.sq_taken(dest) {
+            Err(SquareTakenError::new(dest))
+        } else {
+            let piece = self.piece(&origin).unwrap();
+            self.remove_piece(origin);
+            self.add_piece(piece, dest);
+            Ok(())
+        }
+    }
+
     pub fn pieces(&self, color: Color) -> Vec<&Piece> {
         let mut v = vec![];
         let piece_arr = match color {

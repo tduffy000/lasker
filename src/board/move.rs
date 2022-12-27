@@ -5,6 +5,8 @@ use crate::board::{
     types::{Piece, Square},
 };
 
+use super::types::File;
+
 const MOVE_LIST_SIZE: usize = 255;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
@@ -15,20 +17,25 @@ pub struct Move {
 
 impl fmt::Display for Move {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        // TODO: repr castling here
         let from_file = &self.from_sq().file();
         let from_rank = &self.from_sq().rank();
         let to_file = &self.to_sq().file();
         let to_rank = &self.to_sq().rank();
-        f.write_char(from_file.into())?;
-        f.write_char(from_rank.into())?;
-        f.write_char(to_file.into())?;
-        f.write_char(to_rank.into())?;
-        if let Some(piece) = self.promoted() {
-            let piece_c: char = piece.into();
-            f.write_char(piece_c.to_ascii_lowercase())?
-        }
 
+        if self.castle() & (*to_file == File::C) {
+            f.write_str("0-0-0");
+        } else if self.castle() & (*to_file == File::G) {
+            f.write_str("0-0");
+        } else {
+            f.write_char(from_file.into())?;
+            f.write_char(from_rank.into())?;
+            f.write_char(to_file.into())?;
+            f.write_char(to_rank.into())?;
+            if let Some(piece) = self.promoted() {
+                let piece_c: char = piece.into();
+                f.write_char(piece_c.to_ascii_lowercase())?
+            }
+        }
         Ok(())
     }
 }
@@ -117,7 +124,7 @@ impl Move {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub struct MoveList {
     inner: [Move; MOVE_LIST_SIZE],
     count: u8,
