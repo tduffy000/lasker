@@ -30,31 +30,6 @@ pub const DIRECTIONS: [Direction; 16] = [
     Direction::WestNorthL,
 ];
 
-pub const DIAGONAL_DIRECTIONS: [Direction; 4] = [
-    Direction::SouthEast,
-    Direction::NorthEast,
-    Direction::SouthWest,
-    Direction::NorthWest,
-];
-
-pub const STRAIGHT_DIRECTIONS: [Direction; 4] = [
-    Direction::North,
-    Direction::East,
-    Direction::West,
-    Direction::South,
-];
-
-pub const KNIGHT_DIRECTIONS: [Direction; 8] = [
-    Direction::NorthEastL,
-    Direction::NorthWestL,
-    Direction::EastNorthL,
-    Direction::EastSouthL,
-    Direction::SouthEastL,
-    Direction::SouthWestL,
-    Direction::WestSouthL,
-    Direction::WestNorthL,
-];
-
 pub const PIECES: [Piece; 12] = [
     Piece::WhitePawn,
     Piece::WhiteKnight,

@@ -59,10 +59,6 @@ impl Bitboard {
     pub fn pop_count(&self) -> u32 {
         self.0.count_ones()
     }
-
-    fn complement(&self) -> Self {
-        Bitboard(!self.0)
-    }
 }
 
 impl BitAnd for Bitboard {
