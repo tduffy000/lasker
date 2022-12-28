@@ -82,8 +82,13 @@ impl BoardState {
         state
     }
 
+    // should the below two operate on self or &self?
+    // can they return self / &self? does that change our alloc's?
     pub fn make_move(self, mv: Move) -> BoardState {
         let mut new_state = self.clone();
+        if mv.captured().is_some() {
+            new_state.board.remove_piece(mv.to_sq());
+        }
         new_state.board.move_piece(mv.from_sq(), mv.to_sq());
 
         if mv.castle() {
@@ -170,7 +175,6 @@ impl BoardState {
         new_state
     }
 
-    // TODO: I'm not sure we need the Captured def'n the way we've written the move f'n
     pub fn legal_moves(&self) -> MoveList {
         let color = self.side_to_move;
         let mut moves = MoveList::empty();
@@ -555,6 +559,11 @@ mod tests {
             rook_moved_state.castling_permissions.0,
             CastlingRights::all().0 - CastlingRight::WhiteKing as u8
         );
+
+        let captured_state = state.make_move(Move::new(
+            Square::B5, Square::C6, Some(Piece::BlackKnight), None, false, false, false));
+
+        assert_eq!(captured_state.board.piece(&Square::C6), Some(Piece::WhiteBishop));
     }
 
     #[test]
