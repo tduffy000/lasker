@@ -26,6 +26,8 @@ pub struct BoardState {
     pub history_ply: u8,
     pub position_key: u64,
     pub castling_permissions: CastlingRights, // bits = [ wK, wQ, bK, bQ ]
+    castling_history: [CastlingRights; 256],  // zero-indexed (or, ply-1)
+    en_passant_history: [Option<Square>; 256], // zero-indexed (or, ply-1)
 }
 
 impl BoardState {
@@ -71,108 +73,173 @@ impl BoardState {
         Ok(state)
     }
 
-    pub fn make_moves<I>(self, moves: I) -> BoardState
-    where
-        I: Iterator<Item = Move>,
-    {
-        let mut state = self.clone();
-        for mv in moves {
-            state = state.make_move(mv);
+    fn do_move(&mut self, mv: &Move) {
+        if mv.captured().is_some() {
+            self.board.remove_piece(mv.to_sq());
         }
-        state
+        self.board.move_piece(mv.from_sq(), mv.to_sq());
+        if let Some(piece) = mv.promoted() {
+            self.board.remove_piece(mv.to_sq());
+            self.board.add_piece(piece, mv.to_sq());
+        }
     }
 
-    // should the below two operate on self or &self?
-    // can they return self / &self? does that change our alloc's?
-    pub fn make_move(self, mv: Move) -> BoardState {
-        let mut new_state = self.clone();
-        if mv.captured().is_some() {
-            new_state.board.remove_piece(mv.to_sq());
-        }
-        new_state.board.move_piece(mv.from_sq(), mv.to_sq());
+    fn undo_move(&mut self, mv: &Move) {
+        if let Some(piece) = mv.promoted() {
+            match piece.color() {
+                Color::White => self.board.replace_piece(mv.to_sq(), Piece::WhitePawn),
+                Color::Black => self.board.replace_piece(mv.to_sq(), Piece::BlackPawn),
+            };
+        };
+        self.board.move_piece(mv.to_sq(), mv.from_sq());
+        if let Some(piece) = mv.captured() {
+            self.board.add_piece(piece, mv.to_sq());
+        };
+    }
 
-        if mv.castle() {
-            if mv.from_sq() == Square::E1 {
-                if mv.to_sq() == Square::G1 {
-                    new_state.board.move_piece(Square::H1, Square::F1).unwrap()
-                } else if mv.to_sq() == Square::C1 {
-                    new_state.board.move_piece(Square::A1, Square::D1).unwrap()
-                }
-                new_state.castling_permissions.0 -=
-                    CastlingRight::WhiteKing as u8 + CastlingRight::WhiteQueen as u8;
-            } else if mv.from_sq() == Square::E8 {
-                if mv.to_sq() == Square::G8 {
-                    new_state.board.move_piece(Square::H8, Square::F8).unwrap()
-                } else if mv.to_sq() == Square::C8 {
-                    new_state.board.move_piece(Square::A8, Square::D8).unwrap()
-                }
-                new_state.castling_permissions.0 -=
-                    CastlingRight::BlackKing as u8 + CastlingRight::BlackQueen as u8;
+    fn do_castle(&mut self, mv: &Move, prev_board: &Board) {
+        if mv.from_sq() == Square::E1 {
+            if mv.to_sq() == Square::G1 {
+                self.board.move_piece(Square::H1, Square::F1).unwrap()
+            } else if mv.to_sq() == Square::C1 {
+                self.board.move_piece(Square::A1, Square::D1).unwrap()
             }
+            self.castling_permissions.0 -=
+                CastlingRight::WhiteKing as u8 + CastlingRight::WhiteQueen as u8;
+        } else if mv.from_sq() == Square::E8 {
+            if mv.to_sq() == Square::G8 {
+                self.board.move_piece(Square::H8, Square::F8).unwrap()
+            } else if mv.to_sq() == Square::C8 {
+                self.board.move_piece(Square::A8, Square::D8).unwrap()
+            }
+            self.castling_permissions.0 -=
+                CastlingRight::BlackKing as u8 + CastlingRight::BlackQueen as u8;
         }
-        if (mv.from_sq() == Square::A1) & (self.board.piece(&Square::A1) == Some(Piece::WhiteRook))
+        if (mv.from_sq() == Square::A1) & (prev_board.piece(&Square::A1) == Some(Piece::WhiteRook))
         {
-            new_state.castling_permissions.0 &=
+            self.castling_permissions.0 &=
                 CastlingRights::all().0 - CastlingRight::WhiteQueen as u8;
         } else if (mv.from_sq() == Square::H1)
-            & (self.board.piece(&Square::H1) == Some(Piece::WhiteRook))
+            & (prev_board.piece(&Square::H1) == Some(Piece::WhiteRook))
         {
-            new_state.castling_permissions.0 &=
-                CastlingRights::all().0 - CastlingRight::WhiteKing as u8;
+            self.castling_permissions.0 &= CastlingRights::all().0 - CastlingRight::WhiteKing as u8;
         } else if (mv.from_sq() == Square::A8)
-            & (self.board.piece(&Square::A8) == Some(Piece::BlackRook))
+            & (prev_board.piece(&Square::A8) == Some(Piece::BlackRook))
         {
-            new_state.castling_permissions.0 &=
+            self.castling_permissions.0 &=
                 CastlingRights::all().0 - CastlingRight::BlackQueen as u8;
         } else if (mv.from_sq() == Square::H8)
-            & (self.board.piece(&Square::H8) == Some(Piece::BlackRook))
+            & (prev_board.piece(&Square::H8) == Some(Piece::BlackRook))
         {
-            new_state.castling_permissions.0 &=
-                CastlingRights::all().0 - CastlingRight::BlackKing as u8;
+            self.castling_permissions.0 &= CastlingRights::all().0 - CastlingRight::BlackKing as u8;
         };
+        self.castling_history[self.ply as usize] = self.castling_permissions;
+    }
 
-        if mv.pawn_start() {
+    fn undo_castle(&mut self, mv: &Move) {
+        if mv.castle() {
+            if mv.to_sq() == Square::C1 {
+                self.board.move_piece(Square::D1, Square::A1);
+            }
+            if mv.to_sq() == Square::G1 {
+                self.board.move_piece(Square::F1, Square::H1);
+            }
+            if mv.to_sq() == Square::C8 {
+                self.board.move_piece(Square::D8, Square::A8);
+            }
+            if mv.to_sq() == Square::G8 {
+                self.board.move_piece(Square::F8, Square::H8);
+            }
+        }
+        self.castling_permissions = self.castling_history[self.ply as usize - 1];
+    }
+
+    fn do_pawn_start(&mut self, mv: &Move) {
+        if !mv.pawn_start() {
+            self.en_passant = None
+        } else {
             let dir = match self.side_to_move {
                 Color::White => Direction::South,
                 Color::Black => Direction::North,
             };
             let sq = Square::from_mailbox_no(mv.to_sq() + dir as i8);
-            new_state.en_passant = Some(sq);
-        } else {
-            new_state.en_passant = None;
+            self.en_passant = Some(sq);
         }
+    }
+
+    fn do_en_passant(&mut self, mv: &Move) {
         if mv.en_passant() {
             let dir = match self.side_to_move {
                 Color::White => Direction::South, // white moving, capture black pawn on sq south of en passant sq
                 Color::Black => Direction::North, // black moving, capture white pawn on sq north of en passant sq
             };
-            let capture_sq = Square::from_mailbox_no(self.en_passant.unwrap() + dir as i8);
-            let _ = new_state.board.remove_piece(capture_sq).unwrap();
+            let prev_ep = self.en_passant_history[self.ply as usize - 1];
+            let capture_sq = Square::from_mailbox_no(prev_ep.unwrap() + dir as i8);
+            let _ = self.board.remove_piece(capture_sq).unwrap();
         }
+        self.en_passant_history[self.ply as usize] = self.en_passant;
+    }
+
+    fn undo_en_passant(&mut self, mv: &Move) {
+        if mv.en_passant() {
+            // TODO: add piece back
+        }
+        self.en_passant = self.en_passant_history[self.ply as usize - 1];
+    }
+
+    fn do_fifty_move_counter(&mut self, mv: &Move, prev_board: &Board) {
+        if (mv.captured().is_some())
+            | (prev_board.piece(&mv.from_sq()) == Some(Piece::WhitePawn))
+            | (prev_board.piece(&mv.from_sq()) == Some(Piece::BlackPawn))
+        {
+            self.fifty_move_counter = 0;
+        } else {
+            self.fifty_move_counter += 1;
+        }
+    }
+
+    fn undo_fifty_move_counter(&mut self) {}
+
+    pub fn make_moves<I>(&mut self, moves: I) -> ()
+    where
+        I: Iterator<Item = Move>,
+    {
+        for mv in moves {
+            self.make_move(mv);
+        }
+    }
+
+    pub fn make_move(&mut self, mv: Move) -> () {
+        // TODO: this can be updated to only require the rook bitboard (for castling)
+        // and the pawn bitboards for the 50-move rule
+        let prev_board = self.board.clone();
+
+        self.do_move(&mv);
+        self.do_castle(&mv, &prev_board);
+        self.do_pawn_start(&mv);
+        self.do_en_passant(&mv);
+        self.do_fifty_move_counter(&mv, &prev_board);
 
         // TODO: pos key
 
-        if (mv.captured().is_some())
-            | (self.board.piece(&mv.from_sq()) == Some(Piece::WhitePawn))
-            | (self.board.piece(&mv.from_sq()) == Some(Piece::BlackPawn))
-        {
-            new_state.fifty_move_counter = 0;
-        } else {
-            new_state.fifty_move_counter += 1;
-        }
-
-        if let Some(piece) = mv.promoted() {
-            new_state.board.remove_piece(mv.to_sq());
-            new_state.board.add_piece(piece, mv.to_sq());
-        }
-
-        new_state.ply += 1;
-        new_state.side_to_move = match self.side_to_move {
+        self.ply += 1;
+        self.side_to_move = match self.side_to_move {
             Color::White => Color::Black,
             Color::Black => Color::White,
         };
+    }
 
-        new_state
+    pub fn unmake_move(&mut self, mv: Move) {
+        self.undo_move(&mv);
+        self.undo_castle(&mv);
+        self.undo_en_passant(&mv);
+        self.undo_fifty_move_counter();
+
+        self.ply -= 1;
+        self.side_to_move = match self.side_to_move {
+            Color::White => Color::Black,
+            Color::Black => Color::White,
+        };
     }
 
     pub fn legal_moves(&self) -> MoveList {
@@ -510,6 +577,8 @@ impl Default for BoardState {
             history_ply: 0,
             position_key: 0,
             castling_permissions: CastlingRights(0b1111),
+            castling_history: [CastlingRights(0b0); 256],
+            en_passant_history: [None; 256],
         }
     }
 }
@@ -539,14 +608,15 @@ mod tests {
         ];
         let mut state = BoardState::default();
         for mv in ruy_lopez_opening {
-            state = state.make_move(mv);
+            state.make_move(mv);
         }
         assert_eq!(state.board.piece(&Square::B5), Some(Piece::WhiteBishop));
         assert!(state.en_passant.is_none());
         assert_eq!(state.fifty_move_counter, 3);
         assert_eq!(state.castling_permissions.0, 0b1111);
 
-        let rook_moved_state = state.make_move(Move::new(
+        let mut rook_moved_state = state.clone();
+        rook_moved_state.make_move(Move::new(
             Square::H1,
             Square::G1,
             None,
@@ -560,18 +630,29 @@ mod tests {
             CastlingRights::all().0 - CastlingRight::WhiteKing as u8
         );
 
-        let captured_state = state.make_move(Move::new(
-            Square::B5, Square::C6, Some(Piece::BlackKnight), None, false, false, false));
+        let mut captured_state = state.clone();
+        captured_state.make_move(Move::new(
+            Square::B5,
+            Square::C6,
+            Some(Piece::BlackKnight),
+            None,
+            false,
+            false,
+            false,
+        ));
 
-        assert_eq!(captured_state.board.piece(&Square::C6), Some(Piece::WhiteBishop));
+        assert_eq!(
+            captured_state.board.piece(&Square::C6),
+            Some(Piece::WhiteBishop)
+        );
     }
 
     #[test]
     fn test_board_state_make_move_en_passant() {
         let fen = "8/3k4/8/8/5p2/8/4P3/3K4 w - - 0 1";
-        let board_state = BoardState::from_fen(fen).unwrap();
+        let mut board_state = BoardState::from_fen(fen).unwrap();
 
-        let ep_state = board_state.make_move(Move::new(
+        board_state.make_move(Move::new(
             Square::E2,
             Square::E4,
             None,
@@ -580,13 +661,13 @@ mod tests {
             true,
             false,
         ));
-        assert_eq!(ep_state.en_passant, Some(Square::E3));
+        assert_eq!(board_state.en_passant, Some(Square::E3));
         assert_eq!(
-            ep_state.board.material(Color::White),
+            board_state.board.material(Color::White),
             PIECE_VALUES[Piece::WhiteKing as usize] + PIECE_VALUES[Piece::WhitePawn as usize]
         );
-        assert!(ep_state.board.piece(&Square::E4).is_some());
-        let captured_state = ep_state.make_move(Move::new(
+        assert!(board_state.board.piece(&Square::E4).is_some());
+        board_state.make_move(Move::new(
             Square::F4,
             Square::E3,
             Some(Piece::WhitePawn),
@@ -596,18 +677,18 @@ mod tests {
             false,
         ));
         assert_eq!(
-            captured_state.board.material(Color::White),
+            board_state.board.material(Color::White),
             PIECE_VALUES[Piece::WhiteKing as usize]
         );
-        assert!(captured_state.board.piece(&Square::E4).is_none());
+        assert!(board_state.board.piece(&Square::E4).is_none());
     }
 
     #[test]
     fn test_board_state_legal_moves_en_passant() {
         let fen = "8/3k4/8/8/5p2/8/4P3/3K4 w - - 0 1";
-        let board_state = BoardState::from_fen(fen).unwrap();
+        let mut board_state = BoardState::from_fen(fen).unwrap();
 
-        let ep_state = board_state.make_move(Move::new(
+        board_state.make_move(Move::new(
             Square::E2,
             Square::E4,
             None,
@@ -617,10 +698,7 @@ mod tests {
             false,
         ));
         assert_eq!(
-            ep_state
-                .legal_moves()
-                .filter(|m| m.en_passant())
-                .count(),
+            board_state.legal_moves().filter(|m| m.en_passant()).count(),
             1
         );
     }
@@ -630,7 +708,8 @@ mod tests {
         let fen = "8/8/8/2bk4/8/8/8/R3K2R w KQ - 0 1";
         let board_state = BoardState::from_fen(fen).unwrap();
 
-        let white_ks_state = board_state.clone().make_move(Move::new(
+        let mut white_ks_state = board_state.clone();
+        white_ks_state.make_move(Move::new(
             Square::E1,
             Square::G1,
             None,
@@ -647,7 +726,8 @@ mod tests {
             white_ks_state.board.piece(&Square::G1),
             Some(Piece::WhiteKing)
         );
-        let white_qs_state = board_state.clone().make_move(Move::new(
+        let mut white_qs_state = board_state.clone();
+        white_qs_state.make_move(Move::new(
             Square::E1,
             Square::C1,
             None,
@@ -668,7 +748,8 @@ mod tests {
         let fen = "r3k2r/8/8/2b5/8/8/8/2R1K3 b kq - 0 1";
         let board_state = BoardState::from_fen(fen).unwrap();
 
-        let black_ks_state = board_state.clone().make_move(Move::new(
+        let mut black_ks_state = board_state.clone();
+        black_ks_state.make_move(Move::new(
             Square::E8,
             Square::G8,
             None,
@@ -685,7 +766,8 @@ mod tests {
             black_ks_state.board.piece(&Square::G8),
             Some(Piece::BlackKing)
         );
-        let black_qs_state = board_state.clone().make_move(Move::new(
+        let mut black_qs_state = board_state.clone();
+        black_qs_state.make_move(Move::new(
             Square::E8,
             Square::C8,
             None,
@@ -711,50 +793,30 @@ mod tests {
         let mut board_state = BoardState::from_fen(fen).unwrap();
 
         // kingside invalid bishop on B5 attacks, queenside valid
-        assert_eq!(
-            board_state
-                .legal_moves()
-                .filter(|m| m.castle())
-                .count(),
-            1
-        );
+        assert_eq!(board_state.legal_moves().filter(|m| m.castle()).count(), 1);
         board_state.board.remove_piece(Square::C5);
-        assert_eq!(
-            board_state
-                .legal_moves()
-                .filter(|m| m.castle())
-                .count(),
-            2
-        );
+        assert_eq!(board_state.legal_moves().filter(|m| m.castle()).count(), 2);
 
         // black
         // both sides valid
         let fen = "r3k2r/8/8/2b5/8/8/8/2R1K3 b kq - 0 1";
         let mut board_state = BoardState::from_fen(fen).unwrap();
-        assert_eq!(
-            board_state
-                .legal_moves()
-                .filter(|m| m.castle())
-                .count(),
-            2
-        );
+        assert_eq!(board_state.legal_moves().filter(|m| m.castle()).count(), 2);
         // rm pinning bishop, now queenside travels through attack
         board_state.board.remove_piece(Square::C5);
-        assert_eq!(
-            board_state
-                .legal_moves()
-                .filter(|m| m.castle())
-                .count(),
-            1
-        );
+        assert_eq!(board_state.legal_moves().filter(|m| m.castle()).count(), 1);
     }
 
     #[test]
     fn test_board_state_legal_moves() {
         let white_to_move_fen = "5r2/1k1P1pP1/4q1BB/7n/6p1/1p2Q2b/PP2p3/1K3N2 w - - 0 1";
         let black_to_move_fen = "5r2/1k1P1pP1/4q1BB/7n/6p1/1p2Q2b/PP2p3/1K3N2 b - - 0 1";
-        let mut white_moves = BoardState::from_fen(white_to_move_fen).unwrap().legal_moves();
-        let mut black_moves = BoardState::from_fen(black_to_move_fen).unwrap().legal_moves();
+        let mut white_moves = BoardState::from_fen(white_to_move_fen)
+            .unwrap()
+            .legal_moves();
+        let mut black_moves = BoardState::from_fen(black_to_move_fen)
+            .unwrap()
+            .legal_moves();
 
         let mut expected_white_moves = MoveList::new(vec![
             // pawns

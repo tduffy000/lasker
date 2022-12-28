@@ -147,15 +147,23 @@ impl Board {
         }
     }
 
+    pub fn replace_piece(&mut self, sq: Square, piece: Piece) -> Result<(), NoPieceOnSquareError> {
+        if !self.sq_taken(sq) {
+            return Err(NoPieceOnSquareError::new(sq));
+        };
+        self.remove_piece(sq);
+        self.add_piece(piece, sq);
+        Ok(())
+    }
+
     pub fn move_piece(&mut self, origin: Square, dest: Square) -> Result<(), SquareTakenError> {
         if self.sq_taken(dest) {
-            Err(SquareTakenError::new(dest))
-        } else {
-            let piece = self.piece(&origin).unwrap();
-            self.remove_piece(origin);
-            self.add_piece(piece, dest);
-            Ok(())
-        }
+            return Err(SquareTakenError::new(dest));
+        };
+        let piece = self.piece(&origin).unwrap();
+        self.remove_piece(origin);
+        self.add_piece(piece, dest);
+        Ok(())
     }
 
     pub fn pieces(&self, color: Color) -> Vec<&Piece> {
@@ -423,6 +431,11 @@ mod tests {
         let _ = board.remove_piece(Square::B1);
         assert_eq!(board.bitboard_union(), Bitboard::empty());
         assert!(board.remove_piece(Square::B1).is_err());
+    }
+
+    #[test]
+    fn test_replace_piece() {
+        todo!()
     }
 
     #[test]
