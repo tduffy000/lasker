@@ -16,7 +16,7 @@ use error::FENParsingError;
 use r#move::{Move, MoveList};
 use types::{CastlingRight, CastlingRights, Color, Direction, Piece, Rank, Square};
 
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct BoardState {
     pub board: Board,
     pub side_to_move: Color,
@@ -171,7 +171,8 @@ impl BoardState {
     }
 
     // TODO: I'm not sure we need the Captured def'n the way we've written the move f'n
-    pub fn legal_moves(&self, color: Color) -> MoveList {
+    pub fn legal_moves(&self) -> MoveList {
+        let color = self.side_to_move;
         let mut moves = MoveList::empty();
         for piece in self.board.pieces(color) {
             let piece_squares: Vec<Square> = self.board.bitboard(piece).into();
@@ -608,7 +609,7 @@ mod tests {
         ));
         assert_eq!(
             ep_state
-                .legal_moves(Color::Black)
+                .legal_moves()
                 .filter(|m| m.en_passant())
                 .count(),
             1
@@ -703,7 +704,7 @@ mod tests {
         // kingside invalid bishop on B5 attacks, queenside valid
         assert_eq!(
             board_state
-                .legal_moves(Color::White)
+                .legal_moves()
                 .filter(|m| m.castle())
                 .count(),
             1
@@ -711,7 +712,7 @@ mod tests {
         board_state.board.remove_piece(Square::C5);
         assert_eq!(
             board_state
-                .legal_moves(Color::White)
+                .legal_moves()
                 .filter(|m| m.castle())
                 .count(),
             2
@@ -723,7 +724,7 @@ mod tests {
         let mut board_state = BoardState::from_fen(fen).unwrap();
         assert_eq!(
             board_state
-                .legal_moves(Color::Black)
+                .legal_moves()
                 .filter(|m| m.castle())
                 .count(),
             2
@@ -732,7 +733,7 @@ mod tests {
         board_state.board.remove_piece(Square::C5);
         assert_eq!(
             board_state
-                .legal_moves(Color::Black)
+                .legal_moves()
                 .filter(|m| m.castle())
                 .count(),
             1
@@ -741,10 +742,10 @@ mod tests {
 
     #[test]
     fn test_board_state_legal_moves() {
-        let fen = "5r2/1k1P1pP1/4q1BB/7n/6p1/1p2Q2b/PP2p3/1K3N2 b - - 0 1";
-        let board_state = BoardState::from_fen(fen).unwrap();
-        let mut white_moves = board_state.legal_moves(Color::White);
-        let mut black_moves = board_state.legal_moves(Color::Black);
+        let white_to_move_fen = "5r2/1k1P1pP1/4q1BB/7n/6p1/1p2Q2b/PP2p3/1K3N2 w - - 0 1";
+        let black_to_move_fen = "5r2/1k1P1pP1/4q1BB/7n/6p1/1p2Q2b/PP2p3/1K3N2 b - - 0 1";
+        let mut white_moves = BoardState::from_fen(white_to_move_fen).unwrap().legal_moves();
+        let mut black_moves = BoardState::from_fen(black_to_move_fen).unwrap().legal_moves();
 
         let mut expected_white_moves = MoveList::new(vec![
             // pawns

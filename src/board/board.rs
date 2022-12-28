@@ -8,7 +8,7 @@ use crate::board::{
     utils,
 };
 
-#[derive(Clone, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Board {
     white_pawns: Bitboard,
     white_knights: Bitboard,

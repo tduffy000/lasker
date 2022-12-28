@@ -456,7 +456,7 @@ impl TryFrom<char> for CastlingRight {
 }
 
 // bits = [ wK, wQ, bK, bQ ]
-#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct CastlingRights(pub u8);
 
 impl CastlingRights {
