@@ -435,11 +435,7 @@ mod tests {
 
     #[test]
     fn test_replace_piece() {
-        let mut board = Board::default();
-        assert_eq!(board.piece(&Square::A1), Some(Piece::WhiteRook));
-        let _ = board.replace_piece(Square::A1, Piece::WhiteKnight);
-        assert_eq!(board.piece(&Square::A1), Some(Piece::WhiteKnight));
-        assert!(board.replace_piece(Square::D4, Piece::WhiteKing).is_err());
+        todo!()
     }
 
     #[test]
