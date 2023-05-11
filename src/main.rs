@@ -2,6 +2,7 @@ use board::key::PositionKeyGenerator;
 use board::BoardState;
 
 mod board;
+mod perft;
 
 fn main() {
     let key_manager: PositionKeyGenerator = PositionKeyGenerator::new();
