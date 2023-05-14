@@ -561,9 +561,19 @@ mod tests {
         );
 
         let captured_state = state.make_move(Move::new(
-            Square::B5, Square::C6, Some(Piece::BlackKnight), None, false, false, false));
+            Square::B5,
+            Square::C6,
+            Some(Piece::BlackKnight),
+            None,
+            false,
+            false,
+            false,
+        ));
 
-        assert_eq!(captured_state.board.piece(&Square::C6), Some(Piece::WhiteBishop));
+        assert_eq!(
+            captured_state.board.piece(&Square::C6),
+            Some(Piece::WhiteBishop)
+        );
     }
 
     #[test]
@@ -616,13 +626,7 @@ mod tests {
             true,
             false,
         ));
-        assert_eq!(
-            ep_state
-                .legal_moves()
-                .filter(|m| m.en_passant())
-                .count(),
-            1
-        );
+        assert_eq!(ep_state.legal_moves().filter(|m| m.en_passant()).count(), 1);
     }
 
     #[test]
@@ -711,50 +715,30 @@ mod tests {
         let mut board_state = BoardState::from_fen(fen).unwrap();
 
         // kingside invalid bishop on B5 attacks, queenside valid
-        assert_eq!(
-            board_state
-                .legal_moves()
-                .filter(|m| m.castle())
-                .count(),
-            1
-        );
+        assert_eq!(board_state.legal_moves().filter(|m| m.castle()).count(), 1);
         board_state.board.remove_piece(Square::C5);
-        assert_eq!(
-            board_state
-                .legal_moves()
-                .filter(|m| m.castle())
-                .count(),
-            2
-        );
+        assert_eq!(board_state.legal_moves().filter(|m| m.castle()).count(), 2);
 
         // black
         // both sides valid
         let fen = "r3k2r/8/8/2b5/8/8/8/2R1K3 b kq - 0 1";
         let mut board_state = BoardState::from_fen(fen).unwrap();
-        assert_eq!(
-            board_state
-                .legal_moves()
-                .filter(|m| m.castle())
-                .count(),
-            2
-        );
+        assert_eq!(board_state.legal_moves().filter(|m| m.castle()).count(), 2);
         // rm pinning bishop, now queenside travels through attack
         board_state.board.remove_piece(Square::C5);
-        assert_eq!(
-            board_state
-                .legal_moves()
-                .filter(|m| m.castle())
-                .count(),
-            1
-        );
+        assert_eq!(board_state.legal_moves().filter(|m| m.castle()).count(), 1);
     }
 
     #[test]
     fn test_board_state_legal_moves() {
         let white_to_move_fen = "5r2/1k1P1pP1/4q1BB/7n/6p1/1p2Q2b/PP2p3/1K3N2 w - - 0 1";
         let black_to_move_fen = "5r2/1k1P1pP1/4q1BB/7n/6p1/1p2Q2b/PP2p3/1K3N2 b - - 0 1";
-        let mut white_moves = BoardState::from_fen(white_to_move_fen).unwrap().legal_moves();
-        let mut black_moves = BoardState::from_fen(black_to_move_fen).unwrap().legal_moves();
+        let mut white_moves = BoardState::from_fen(white_to_move_fen)
+            .unwrap()
+            .legal_moves();
+        let mut black_moves = BoardState::from_fen(black_to_move_fen)
+            .unwrap()
+            .legal_moves();
 
         let mut expected_white_moves = MoveList::new(vec![
             // pawns

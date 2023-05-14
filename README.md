@@ -1,6 +1,10 @@
-
 # `lasker`
 An attempt to build a UCI-compliant chess engine from the ground up in pure Rust. The primary goal here is to learn how chess engines are written, and not necessarily to optimize performance (maybe one day that goal will change). As such, there is a lot of fluff in here that _should increase_ comprehension.
+
+# perft testing
+```bash
+lasker perft 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1' 2
+```
 
 ## Resources
 ### Forums
