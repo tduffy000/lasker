@@ -1,10 +1,18 @@
 # `lasker`
 An attempt to build a UCI-compliant chess engine from the ground up in pure Rust. The primary goal here is to learn how chess engines are written, and not necessarily to optimize performance (maybe one day that goal will change). As such, there is a lot of fluff in here that _should increase_ comprehension.
 
-# perft testing
+## perft testing
+In order to perform [`perft`](https://www.chessprogramming.org/Perft) testing which counts the number of engine-valid moves from a given FEN string to a specified depth, `lasker` uses the same mechanism as [Stockfish](https://github.com/official-stockfish/Stockfish/blob/df0fb8471e5015bb4ba0b398c203b7faad45840e/src/uci.cpp#L146) which appends it to the `go` uci command. 
+
+So, in order to run `perft`, build the binary or do
 ```bash
-lasker perft 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1' 2
+cargo run
 ```
+and then `lasker` will receive the command via `stdin`. E.g.
+```bash
+go perft rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1 2 
+```
+will print the number of valid moves from the starting position to a `depth` of 2.
 
 ## Resources
 ### Forums
