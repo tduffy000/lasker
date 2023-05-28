@@ -8,11 +8,15 @@ So, in order to run `perft`, build the binary or do
 ```bash
 cargo run
 ```
-and then `lasker` will receive the command via `stdin`. E.g.
+and then `lasker` will receive the command via `stdin`. The first step is to use the `position` command to tell the engine what to set the current position as. E.g.
 ```bash
-go perft rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1 2 
+position fen rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1
 ```
-will print the number of valid moves from the starting position to a `depth` of 2.
+then, running `perft` a specified `depth` uses the `go` command. 
+```bash
+go perft 2
+```
+This will print the number of valid moves from the starting position to a `depth` of 2.
 
 ## Resources
 ### Forums
