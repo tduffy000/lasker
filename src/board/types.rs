@@ -489,8 +489,20 @@ impl CastlingRights {
         (&self.0 >> 3) & 0b1 == 0b1
     }
 
+    pub fn unset_white_bits(&mut self) {
+        self.0 &= 0b1100;
+    }
+
+    pub fn unset_black_bits(&mut self) {
+        self.0 &= 0b0011
+    }
+
     pub fn all() -> CastlingRights {
         CastlingRights(0b1111)
+    }
+
+    pub fn empty() -> CastlingRights {
+        CastlingRights(0b0000)
     }
 }
 
@@ -663,6 +675,38 @@ mod tests {
                 & all_rights.black_kingside()
                 & all_rights.black_queenside()
         );
+    }
+
+    #[test]
+    fn test_castling_rights_unset_bits() {
+        let mut empty_rights = CastlingRights::empty();
+        let mut wq = CastlingRights::from_fen("Q").unwrap();
+        let mut all_rights = CastlingRights::all();
+
+        // essential to ensure that the unsetting is idempotent
+        // b/c initially I didn't do that and it threw overflow errors (subtracting to negatives)
+        empty_rights.unset_black_bits();
+        assert_eq!(empty_rights.0, CastlingRights::empty().0);
+        empty_rights.unset_white_bits();
+        assert_eq!(empty_rights.0, CastlingRights::empty().0);
+
+        wq.unset_white_bits();
+        assert_eq!(wq.0, CastlingRights::empty().0);
+        wq.unset_white_bits();
+        assert_eq!(wq.0, CastlingRights::empty().0);
+        wq.unset_black_bits();
+        assert_eq!(wq.0, CastlingRights::empty().0);
+
+        all_rights.unset_black_bits();
+        assert_eq!(all_rights.black_kingside(), false);
+        assert_eq!(all_rights.black_queenside(), false);
+        assert_eq!(all_rights.white_queenside(), true);
+        assert_eq!(all_rights.white_kingside(), true);
+        all_rights.unset_black_bits();
+        assert_eq!(all_rights.black_kingside(), false);
+        assert_eq!(all_rights.black_queenside(), false);
+        assert_eq!(all_rights.white_queenside(), true);
+        assert_eq!(all_rights.white_kingside(), true);
     }
 
     #[test]

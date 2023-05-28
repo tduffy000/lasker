@@ -23,6 +23,7 @@ fn handle_position(mut buf: String) -> BoardState {
 
 fn handle_perft(buf: String, pos: &BoardState) {
     if let Some(depth_str) = buf.split_ascii_whitespace().next_back() {
+        println!("\nevaluating position: {:?}", pos);
         let depth = depth_str.parse().unwrap();
         let nodes_searched = run_perft(*pos, depth);
         println!("\ntotal nodes searched: {nodes_searched}");

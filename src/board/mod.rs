@@ -98,37 +98,36 @@ impl BoardState {
                 } else if mv.to_sq() == Square::C1 {
                     new_state.board.move_piece(Square::A1, Square::D1).unwrap()
                 }
-                new_state.castling_permissions.0 -=
-                    CastlingRight::WhiteKing as u8 + CastlingRight::WhiteQueen as u8;
+                new_state.castling_permissions.unset_white_bits();
             } else if mv.from_sq() == Square::E8 {
                 if mv.to_sq() == Square::G8 {
                     new_state.board.move_piece(Square::H8, Square::F8).unwrap()
                 } else if mv.to_sq() == Square::C8 {
                     new_state.board.move_piece(Square::A8, Square::D8).unwrap()
                 }
-                new_state.castling_permissions.0 -=
-                    CastlingRight::BlackKing as u8 + CastlingRight::BlackQueen as u8;
+
+                new_state.castling_permissions.unset_black_bits();
             }
         }
         if (mv.from_sq() == Square::A1) & (self.board.piece(&Square::A1) == Some(Piece::WhiteRook))
         {
             new_state.castling_permissions.0 &=
-                CastlingRights::all().0 - CastlingRight::WhiteQueen as u8;
+                (CastlingRights::all().0 - CastlingRight::WhiteQueen as u8);
         } else if (mv.from_sq() == Square::H1)
             & (self.board.piece(&Square::H1) == Some(Piece::WhiteRook))
         {
             new_state.castling_permissions.0 &=
-                CastlingRights::all().0 - CastlingRight::WhiteKing as u8;
+                (CastlingRights::all().0 - CastlingRight::WhiteKing as u8);
         } else if (mv.from_sq() == Square::A8)
             & (self.board.piece(&Square::A8) == Some(Piece::BlackRook))
         {
             new_state.castling_permissions.0 &=
-                CastlingRights::all().0 - CastlingRight::BlackQueen as u8;
+                (CastlingRights::all().0 - CastlingRight::BlackQueen as u8);
         } else if (mv.from_sq() == Square::H8)
             & (self.board.piece(&Square::H8) == Some(Piece::BlackRook))
         {
             new_state.castling_permissions.0 &=
-                CastlingRights::all().0 - CastlingRight::BlackKing as u8;
+                (CastlingRights::all().0 - CastlingRight::BlackKing as u8);
         };
 
         if mv.pawn_start() {
