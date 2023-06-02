@@ -1,0 +1,1 @@
+# https://github.com/official-stockfish/Stockfish/blob/2046d5da30b2cd505b69bddb40062b0d37b43bc7/tests/perft.sh

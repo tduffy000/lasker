@@ -1,6 +1,6 @@
 use rand::random;
 
-use crate::board::{constants::SQUARES, types::Color, BoardState};
+use crate::play::{constants::SQUARES, types::Color, GameState};
 
 pub struct PositionKeyGenerator {
     key: u64,
@@ -45,27 +45,27 @@ impl PositionKeyGenerator {
 
     // this should be incremental, i.e. only based on the
     // pieces that change
-    pub fn hash_board(&self, state: &BoardState) -> u64 {
+    pub fn hash_board(&self, state: &GameState) -> u64 {
         let mut key = 0;
 
         // pieces
         for sq in SQUARES.iter() {
-            if let Some(piece) = state.board.piece(sq) {
+            if let Some(piece) = state.position.board.piece(sq) {
                 let piece_idx = piece as usize;
                 key ^= self.piece_hashes[piece_idx][*sq as usize];
             }
         }
 
         // castling
-        key ^= self.castling_permission_hashes[state.castling_permissions.0 as usize];
+        key ^= self.castling_permission_hashes[state.position.castling_permissions.0 as usize];
 
         // en passant
-        if let Some(sq) = state.en_passant {
+        if let Some(sq) = state.position.en_passant {
             key ^= self.en_passant_hashes[sq as usize]
         }
 
         // to move
-        if state.side_to_move == Color::White {
+        if state.position.side_to_move == Color::White {
             key ^= self.side_to_move_hash
         }
 
@@ -77,37 +77,40 @@ impl PositionKeyGenerator {
 mod tests {
 
     use super::*;
-    use crate::board::types::{CastlingRights, Piece, Square};
+    use crate::play::types::{CastlingRights, Piece, Square};
 
     #[test]
     fn test_hash_board() {
-        let mut state = BoardState::default();
+        let mut state = GameState::default();
         let key_gen = PositionKeyGenerator::new();
 
         let base_key = key_gen.hash_board(&state);
 
         // switch colors
-        state.side_to_move = Color::Black;
+        state.position.side_to_move = Color::Black;
         assert_ne!(base_key, key_gen.hash_board(&state));
-        state.side_to_move = Color::White;
+        state.position.side_to_move = Color::White;
         assert_eq!(base_key, key_gen.hash_board(&state));
 
         // switch en passant
-        state.en_passant = Some(Square::C3);
+        state.position.en_passant = Some(Square::C3);
         assert_ne!(base_key, key_gen.hash_board(&state));
-        state.en_passant = None;
+        state.position.en_passant = None;
         assert_eq!(base_key, key_gen.hash_board(&state));
 
         // switch castling rights (default == 0b1111)
-        state.castling_permissions = CastlingRights(0b1010);
+        state.position.castling_permissions = CastlingRights(0b1010);
         assert_ne!(base_key, key_gen.hash_board(&state));
-        state.castling_permissions = CastlingRights(0b1111);
+        state.position.castling_permissions = CastlingRights(0b1111);
         assert_eq!(base_key, key_gen.hash_board(&state));
 
         // add a piece
-        let _ = state.board.add_piece(Piece::BlackQueen, Square::A4);
+        let _ = state
+            .position
+            .board
+            .add_piece(Piece::BlackQueen, Square::A4);
         assert_ne!(base_key, key_gen.hash_board(&state));
-        let _ = state.board.remove_piece(Square::A4);
+        let _ = state.position.board.remove_piece(Square::A4);
         assert_eq!(base_key, key_gen.hash_board(&state));
     }
 }

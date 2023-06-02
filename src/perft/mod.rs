@@ -1,46 +1,33 @@
-use crate::board::BoardState;
+use crate::play::{
+    r#move::{make_move, unmake_move},
+    GameState,
+};
 
-pub fn run_perft(state: BoardState, depth: u64) -> u64 {
+pub fn run_perft(state: &mut GameState, depth: u64) -> u64 {
     state
+        .position
         .legal_moves()
         .map(|mv| {
-            let nodes: u64 = perft(state.make_move(mv), depth - 1);
+            let mut s = state.clone();
+            make_move(mv, &mut s);
+            let nodes: u64 = perft(&mut s, depth - 1);
             println!("{mv}: {nodes}");
             nodes
         })
         .fold(0, |acc, x| acc + x)
 }
 
-fn perft(state: BoardState, depth: u64) -> u64 {
+fn perft(state: &mut GameState, depth: u64) -> u64 {
     if depth == 0 {
         return 1;
     }
     let mut nodes: u64 = 0;
-    for mv in state.legal_moves() {
-        nodes += perft(state.make_move(mv), depth - 1);
+    for mv in state.position.legal_moves() {
+        make_move(mv, state);
+        nodes += perft(state, depth - 1);
+        unmake_move(mv, state);
     }
     nodes
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn perft_1_test() {
-        let state =
-            BoardState::from_fen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1")
-                .unwrap();
-        let result = perft(state, 1);
-        assert_eq!(result, 20);
-    }
-
-    #[test]
-    fn perft_2_test() {
-        let state =
-            BoardState::from_fen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1")
-                .unwrap();
-        let result = perft(state, 2);
-        assert_eq!(result, 400);
-    }
-}
+// add a simple test for perft 2

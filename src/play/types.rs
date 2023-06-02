@@ -4,13 +4,15 @@ use std::{
     ops::{Add, Range},
 };
 
-use crate::board::{
+use crate::play::{
+    board::bitboard::Bitboard,
     constants::{
         FILES, FILE_A, IS_MAJOR_PIECE, IS_MINOR_PIECE, MAILBOX, MAILBOX_IDX, RANKS, RANK_1, SQUARES,
     },
-    error::{FENParsingError, InvalidCharError, SquareIndexError},
-    Bitboard,
+    error::{FENParsingError, InvalidCharError},
 };
+
+use super::error::SquareIndexError;
 
 const FEN_BLANK: &str = "-";
 
@@ -345,7 +347,7 @@ impl TryFrom<usize> for Square {
         if let Some(sq) = SQUARES.get(value) {
             Ok(*sq)
         } else {
-            Err(SquareIndexError::new(value, "Square out of range!"))
+            Err(SquareIndexError::new(value))
         }
     }
 }
@@ -368,6 +370,10 @@ impl Add<i8> for Square {
 impl Square {
     pub fn from_mailbox_no(mailbox_no: i8) -> Self {
         SQUARES[mailbox_no as usize]
+    }
+
+    pub fn from_bitboard(bb: Bitboard) -> Square {
+        SQUARES[bb.0 as usize]
     }
 
     pub fn new(f: File, r: Rank) -> Self {
@@ -510,7 +516,7 @@ impl CastlingRights {
 mod tests {
 
     use super::*;
-    use crate::board::utils::set_bits;
+    use crate::play::utils::set_bits;
 
     #[test]
     fn test_try_from_usize_for_sq() {

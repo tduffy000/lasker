@@ -1,9 +1,7 @@
-mod uci;
 mod perft;
-mod board;
+mod play;
+mod uci;
 
 fn main() {
-
     uci::uci_loop();
-
 }

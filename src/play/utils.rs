@@ -1,6 +1,5 @@
-use crate::board::{
-    bitboard::Bitboard,
-    board::Board,
+use crate::play::{
+    board::{bitboard::Bitboard, Board},
     r#move::Move,
     types::{Color, Direction, Square},
 };

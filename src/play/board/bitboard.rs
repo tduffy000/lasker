@@ -3,7 +3,7 @@ use std::{
     ops::{BitAnd, BitAndAssign, BitOr, BitOrAssign, BitXor, BitXorAssign},
 };
 
-use crate::board::{
+use crate::play::{
     constants::{FILES, RANKS, SQUARES},
     types::Square,
     utils::set_bits,
