@@ -46,8 +46,12 @@ impl GameState {
 
         let n_fields = 6;
         let fen_str = fen.to_string();
-        if fen_str.split(' ').count() != n_fields {
-            return Err(FENParsingError::new(" "));
+        let field_count = fen_str.split(' ').count();
+        if field_count != n_fields {
+            return Err(FENParsingError::new(format!(
+                "Incorrect number of fields to parse position. Expected {}, got {}",
+                n_fields, field_count
+            )));
         }
         let fields: Vec<String> = fen_str.split(' ').map(|s| s.to_string()).collect();
 
@@ -71,5 +75,4 @@ mod tests {
         let parsed_state = GameState::from_fen(start_state).unwrap();
         assert_eq!(parsed_state, GameState::default());
     }
-
 }

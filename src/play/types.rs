@@ -402,6 +402,7 @@ impl Square {
         }
         let chars: Vec<char> = fen.to_string().chars().collect();
         if chars.len() != 2 {
+            // TODO (tcd 6/2/23): better error here
             return Err(InvalidCharError::new('x'));
         }
 

@@ -34,7 +34,8 @@ impl Position {
         let n_req_fields = 4;
         if fields.len() != n_req_fields {
             return Err(FENParsingError::new(format!(
-                "Incorrect number of fields to parse position. Expected 4, got {}",
+                "Incorrect number of fields to parse position. Expected {}, got {}",
+                n_req_fields,
                 fields.len()
             )));
         }

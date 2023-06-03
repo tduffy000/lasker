@@ -6,14 +6,14 @@ use crate::play::{
 };
 
 use super::{
+    error::MoveError,
     types::{CastlingRight, CastlingRights, Color, Direction, File},
-    GameState, error::MoveError,
+    GameState,
 };
 
 ///
 ///
 pub fn make_move(mv: Move, state: &mut GameState) -> Result<(), MoveError> {
-
     // update 50-move counter before the pieces are moved on the board
     if (mv.captured().is_some())
         | (state.position.board.piece(&mv.from_sq()) == Some(Piece::WhitePawn))
@@ -31,28 +31,16 @@ pub fn make_move(mv: Move, state: &mut GameState) -> Result<(), MoveError> {
     if mv.castle() {
         if mv.from_sq() == Square::E1 {
             if mv.to_sq() == Square::G1 {
-                state
-                    .position
-                    .board
-                    .move_piece(Square::H1, Square::F1)?
+                state.position.board.move_piece(Square::H1, Square::F1)?
             } else if mv.to_sq() == Square::C1 {
-                state
-                    .position
-                    .board
-                    .move_piece(Square::A1, Square::D1)?
+                state.position.board.move_piece(Square::A1, Square::D1)?
             }
             state.position.castling_permissions.unset_white_bits();
         } else if mv.from_sq() == Square::E8 {
             if mv.to_sq() == Square::G8 {
-                state
-                    .position
-                    .board
-                    .move_piece(Square::H8, Square::F8)?
+                state.position.board.move_piece(Square::H8, Square::F8)?
             } else if mv.to_sq() == Square::C8 {
-                state
-                    .position
-                    .board
-                    .move_piece(Square::A8, Square::D8)?
+                state.position.board.move_piece(Square::A8, Square::D8)?
             }
 
             state.position.castling_permissions.unset_black_bits();
@@ -109,7 +97,10 @@ pub fn make_move(mv: Move, state: &mut GameState) -> Result<(), MoveError> {
     state.ply += 1;
     state.position.flip_side();
     state.fifty_move_country_hist.push(state.fifty_move_counter);
-    state.position.castling_perms_history.push(state.position.castling_permissions);
+    state
+        .position
+        .castling_perms_history
+        .push(state.position.castling_permissions);
     Ok(())
 }
 
@@ -117,7 +108,7 @@ pub fn make_move(mv: Move, state: &mut GameState) -> Result<(), MoveError> {
 ///
 pub fn unmake_move(mv: Move, state: &mut GameState) -> Result<(), MoveError> {
     state.position.board.move_piece(mv.to_sq(), mv.from_sq())?;
-    
+
     // is en passant a capture? if so this is wrong for en passant captures
     if let Some(piece) = mv.captured() {
         state.position.board.add_piece(piece, mv.to_sq())?;
@@ -125,13 +116,9 @@ pub fn unmake_move(mv: Move, state: &mut GameState) -> Result<(), MoveError> {
 
     // TODO: idk about the first castling condition
 
-    if mv.pawn_start() {
+    if mv.pawn_start() {}
 
-    }
-
-    if mv.en_passant() {
-
-    }
+    if mv.en_passant() {}
 
     if let Some(piece) = mv.promoted() {
         state.position.board.remove_piece(mv.to_sq())?;
@@ -407,43 +394,17 @@ mod tests {
     }
 
     #[test]
-    fn test_make_move_simple() {
+    fn test_make_unmake_move_simple() {
         let mut state = GameState::default();
-        let mv = Move::new(
-            Square::A2,
-            Square::A3,
-            None,
-            None,
-            false,
-            true,
-            false,
-        );
+        let mv = Move::new(Square::A2, Square::A3, None, None, false, true, false);
         assert_eq!(state.position.board.piece(&Square::A3), None);
         assert_eq!(state.fifty_move_counter, 0);
         assert_eq!(state.ply, 0);
         make_move(mv, &mut state);
-        assert_eq!(state.position.board.piece(&Square::A3), Some(Piece::WhitePawn));
-        assert_eq!(state.fifty_move_counter, 0);
-        assert_eq!(state.ply, 1);
-    }
-
-    #[test]
-    fn test_unmake_move_simple() {
-        let mut state = GameState::default();
-        let mv = Move::new(
-            Square::A2,
-            Square::A3,
-            None,
-            None,
-            false,
-            true,
-            false,
+        assert_eq!(
+            state.position.board.piece(&Square::A3),
+            Some(Piece::WhitePawn)
         );
-        assert_eq!(state.position.board.piece(&Square::A3), None);
-        assert_eq!(state.fifty_move_counter, 0);
-        assert_eq!(state.ply, 0);
-        make_move(mv, &mut state);
-        assert_eq!(state.position.board.piece(&Square::A3), Some(Piece::WhitePawn));
         assert_eq!(state.fifty_move_counter, 0);
         assert_eq!(state.ply, 1);
         unmake_move(mv, &mut state);
@@ -453,40 +414,109 @@ mod tests {
     }
 
     #[test]
-    fn test_make_move_castle() {}
+    fn test_make_unmake_move_castle() {
+        let fen = "r3k2r/pppn1bpp/3pqn2/4pp2/2B1P1b1/1PN2N2/PBPPQPPP/R3K2R w KQkq - 0 1";
+        let mut state = GameState::from_fen(fen).unwrap();
+
+        // white kingside
+        let wk_side_castle_mv = Move::new(Square::E1, Square::G1, None, None, false, false, true);
+        assert_eq!(
+            state.position.board.piece(&Square::E1),
+            Some(Piece::WhiteKing)
+        );
+        assert_eq!(
+            state.position.board.piece(&Square::H1),
+            Some(Piece::WhiteRook)
+        );
+        assert!(make_move(wk_side_castle_mv, &mut state).is_ok());
+        assert_eq!(
+            state.position.board.piece(&Square::G1),
+            Some(Piece::WhiteKing)
+        );
+        assert_eq!(
+            state.position.board.piece(&Square::F1),
+            Some(Piece::WhiteRook)
+        );
+        assert!(unmake_move(wk_side_castle_mv, &mut state).is_ok());
+
+        // white queenside
+        let wq_side_castle_mv = Move::new(Square::E1, Square::C1, None, None, false, false, true);
+        assert_eq!(
+            state.position.board.piece(&Square::E1),
+            Some(Piece::WhiteKing)
+        );
+        assert_eq!(
+            state.position.board.piece(&Square::A1),
+            Some(Piece::WhiteRook)
+        );
+        assert!(make_move(wq_side_castle_mv, &mut state).is_ok());
+        assert_eq!(
+            state.position.board.piece(&Square::C1),
+            Some(Piece::WhiteKing)
+        );
+        assert_eq!(
+            state.position.board.piece(&Square::D1),
+            Some(Piece::WhiteRook)
+        );
+        assert!(unmake_move(wq_side_castle_mv, &mut state).is_ok());
+
+        // black kingside
+        let bk_side_castle_mv = Move::new(Square::E8, Square::C8, None, None, false, false, true);
+        assert_eq!(
+            state.position.board.piece(&Square::E8),
+            Some(Piece::BlackKing)
+        );
+        assert_eq!(
+            state.position.board.piece(&Square::A8),
+            Some(Piece::BlackRook)
+        );
+        assert!(make_move(bk_side_castle_mv, &mut state).is_ok());
+        assert_eq!(
+            state.position.board.piece(&Square::C8),
+            Some(Piece::BlackKing)
+        );
+        assert_eq!(
+            state.position.board.piece(&Square::D8),
+            Some(Piece::BlackRook)
+        );
+        assert!(unmake_move(bk_side_castle_mv, &mut state).is_ok());
+
+        // black queenside
+        let bq_side_castle_mv = Move::new(Square::E8, Square::G8, None, None, false, false, true);
+        assert_eq!(
+            state.position.board.piece(&Square::E8),
+            Some(Piece::BlackKing)
+        );
+        assert_eq!(
+            state.position.board.piece(&Square::H8),
+            Some(Piece::BlackRook)
+        );
+        assert!(make_move(bq_side_castle_mv, &mut state).is_ok());
+        assert_eq!(
+            state.position.board.piece(&Square::G8),
+            Some(Piece::BlackKing)
+        );
+        assert_eq!(
+            state.position.board.piece(&Square::F8),
+            Some(Piece::BlackRook)
+        );
+        assert!(unmake_move(bq_side_castle_mv, &mut state).is_ok());
+    }
 
     #[test]
-    fn test_unmake_move_castle() {}
+    fn test_make_unmake_move_castling_rights() {}
 
     #[test]
-    fn test_make_move_castling_rights() {}
+    fn test_make_unmake_move_en_passant() {}
 
     #[test]
-    fn test_unmake_move_castling_rights() {}
+    fn test_make_unmake_move_capture() {}
 
     #[test]
-    fn test_make_move_en_passant() {}
+    fn test_make_unmake_move_promotion() {}
 
     #[test]
-    fn test_unmake_move_en_passant() {}
-
-    #[test]
-    fn test_make_move_capture() {}
-
-    #[test]
-    fn test_unmake_move_capture() {}
-
-    #[test]
-    fn test_make_move_promotion() {}
-
-    #[test]
-    fn test_unmake_move_promotion() {}
-
-    #[test]
-    fn test_make_move_pawn_start() {}
-
-    #[test]
-    fn test_unmake_move_pawn_start() {}
+    fn test_make_unmake_move_pawn_start() {}
 
     #[test]
     fn test_move_list_push() {
@@ -496,5 +526,4 @@ mod tests {
         l.push(Move::empty());
         assert_eq!(l.count, 2);
     }
-
 }

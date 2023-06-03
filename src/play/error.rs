@@ -1,6 +1,8 @@
 use crate::play::types::Square;
 
-pub struct MoveError{err: MoveErrorType}
+pub struct MoveError {
+    err: MoveErrorType,
+}
 
 pub enum MoveErrorType {
     SquareTakenError(Square),
@@ -9,15 +11,13 @@ pub enum MoveErrorType {
 
 impl MoveError {
     pub fn new(err: MoveErrorType) -> MoveError {
-        MoveError {err}
+        MoveError { err }
     }
 
     pub fn print_msg(&self) {
         let msg = match self.err {
-            MoveErrorType::SquareTakenError(sq) => 
-                format!("Square: {} is already taken", sq),
-            MoveErrorType::NoPieceOnSquareError(sq) => 
-                format!("No piece on square: {}", sq),
+            MoveErrorType::SquareTakenError(sq) => format!("Square: {} is already taken", sq),
+            MoveErrorType::NoPieceOnSquareError(sq) => format!("No piece on square: {}", sq),
         };
         eprintln!("{}", msg)
     }
@@ -59,13 +59,16 @@ impl FENParsingError {
 }
 
 impl From<InvalidCharError> for FENParsingError {
-    fn from(_: InvalidCharError) -> Self {
-        FENParsingError::new("")
+    fn from(err: InvalidCharError) -> Self {
+        FENParsingError::new(format!("Error parsing fen: invalid char {}", err.ch))
     }
 }
 
 impl From<SquareIndexError> for FENParsingError {
-    fn from(_: SquareIndexError) -> Self {
-        FENParsingError::new("")
+    fn from(err: SquareIndexError) -> Self {
+        FENParsingError::new(format!(
+            "Error parsing fen: invalid square index: {}",
+            err.idx
+        ))
     }
 }
