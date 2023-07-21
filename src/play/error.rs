@@ -7,6 +7,7 @@ pub struct MoveError {
 pub enum MoveErrorType {
     SquareTakenError(Square),
     NoPieceOnSquareError(Square),
+    InsufficientHistory(String),
 }
 
 impl MoveError {
@@ -15,9 +16,10 @@ impl MoveError {
     }
 
     pub fn print_msg(&self) {
-        let msg = match self.err {
+        let msg = match &self.err {
             MoveErrorType::SquareTakenError(sq) => format!("Square: {} is already taken", sq),
             MoveErrorType::NoPieceOnSquareError(sq) => format!("No piece on square: {}", sq),
+            MoveErrorType::InsufficientHistory(s) => format!("Tried popping from empty: {}", s),
         };
         eprintln!("{}", msg)
     }

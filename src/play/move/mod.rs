@@ -6,7 +6,7 @@ use crate::play::{
 };
 
 use super::{
-    error::MoveError,
+    error::{MoveError, MoveErrorType},
     types::{CastlingRight, CastlingRights, Color, Direction, File},
     GameState,
 };
@@ -68,6 +68,15 @@ pub fn make_move(mv: Move, state: &mut GameState) -> Result<(), MoveError> {
             CastlingRights::all().0 - CastlingRight::BlackKing as u8;
     };
 
+    if mv.en_passant() {
+        let dir = match state.position.side_to_move {
+            Color::White => Direction::South, // white moving, capture black pawn on sq south of en passant sq
+            Color::Black => Direction::North, // black moving, capture white pawn on sq north of en passant sq
+        };
+        let capture_sq = Square::from_mailbox_no(state.position.en_passant.unwrap() + dir as i8);
+        let _ = state.position.board.remove_piece(capture_sq)?;
+    }
+
     if mv.pawn_start() {
         let dir = match state.position.side_to_move {
             Color::White => Direction::South,
@@ -77,14 +86,6 @@ pub fn make_move(mv: Move, state: &mut GameState) -> Result<(), MoveError> {
         state.position.en_passant = Some(sq);
     } else {
         state.position.en_passant = None;
-    }
-    if mv.en_passant() {
-        let dir = match state.position.side_to_move {
-            Color::White => Direction::South, // white moving, capture black pawn on sq south of en passant sq
-            Color::Black => Direction::North, // black moving, capture white pawn on sq north of en passant sq
-        };
-        let capture_sq = Square::from_mailbox_no(state.position.en_passant.unwrap() + dir as i8);
-        let _ = state.position.board.remove_piece(capture_sq)?;
     }
 
     // TODO: pos key
@@ -109,7 +110,6 @@ pub fn make_move(mv: Move, state: &mut GameState) -> Result<(), MoveError> {
 pub fn unmake_move(mv: Move, state: &mut GameState) -> Result<(), MoveError> {
     state.position.board.move_piece(mv.to_sq(), mv.from_sq())?;
 
-    // is en passant a capture? if so this is wrong for en passant captures
     if let Some(piece) = mv.captured() {
         state.position.board.add_piece(piece, mv.to_sq())?;
     }
@@ -118,7 +118,21 @@ pub fn unmake_move(mv: Move, state: &mut GameState) -> Result<(), MoveError> {
 
     if mv.pawn_start() {}
 
-    if mv.en_passant() {}
+    if mv.en_passant() {
+        match state.position.side_to_move {
+            Color::White => {
+                let sq = Square::from_mailbox_no(mv.to_sq() + Direction::North as i8);
+                state.position.board.add_piece(Piece::WhitePawn, sq)?
+            }
+            Color::Black => {
+                let sq = Square::from_mailbox_no(mv.to_sq() + Direction::South as i8);
+                state.position.board.add_piece(Piece::BlackPawn, sq)?
+            }
+        };
+        state.position.en_passant = Some(mv.to_sq());
+    } else {
+        state.position.en_passant = None
+    }
 
     if let Some(piece) = mv.promoted() {
         state.position.board.remove_piece(mv.to_sq())?;
@@ -131,8 +145,15 @@ pub fn unmake_move(mv: Move, state: &mut GameState) -> Result<(), MoveError> {
 
     state.ply -= 1;
     state.position.flip_side();
-    state.fifty_move_counter = state.fifty_move_country_hist.pop().unwrap();
-    state.position.castling_permissions = state.position.castling_perms_history.pop().unwrap();
+
+    state.fifty_move_counter = state.fifty_move_country_hist
+        .pop()
+        .ok_or(MoveError::new(MoveErrorType::InsufficientHistory("fifty_move_counter".to_string())))?;
+    
+    state.position.castling_permissions = state.position.castling_perms_history
+        .pop()
+        .ok_or(MoveError::new(MoveErrorType::InsufficientHistory("castling_permissions".to_string())))?;
+    
     Ok(())
 }
 
@@ -400,21 +421,21 @@ mod tests {
         assert_eq!(state.position.board.piece(&Square::A3), None);
         assert_eq!(state.fifty_move_counter, 0);
         assert_eq!(state.ply, 0);
-        make_move(mv, &mut state);
+        assert!(make_move(mv, &mut state).is_ok());
         assert_eq!(
             state.position.board.piece(&Square::A3),
             Some(Piece::WhitePawn)
         );
         assert_eq!(state.fifty_move_counter, 0);
         assert_eq!(state.ply, 1);
-        unmake_move(mv, &mut state);
+        assert!(unmake_move(mv, &mut state).is_ok());
         assert_eq!(state.position.board.piece(&Square::A3), None);
         assert_eq!(state.fifty_move_counter, 0);
         assert_eq!(state.ply, 0);
     }
 
     #[test]
-    fn test_make_unmake_move_castle() {
+    fn test_make_unmake_move_castling() {
         let fen = "r3k2r/pppn1bpp/3pqn2/4pp2/2B1P1b1/1PN2N2/PBPPQPPP/R3K2R w KQkq - 0 1";
         let mut state = GameState::from_fen(fen).unwrap();
 
@@ -504,10 +525,34 @@ mod tests {
     }
 
     #[test]
-    fn test_make_unmake_move_castling_rights() {}
+    fn test_make_unmake_move_en_passant() {
+        let white_ep_fen = "rnbqkbnr/ppp3pp/4p3/3p4/3P1p2/2N5/PPP1PPPP/R1BQKBNR w KQkq - 0 1";
+        let mut white_ep_state = GameState::from_fen(white_ep_fen).unwrap();
 
-    #[test]
-    fn test_make_unmake_move_en_passant() {}
+        let pawn_start_mv = Move::new(Square::E2, Square::E4, None, None, false, true, false);
+        let capture_mv = Move::new(Square::F4, Square::E3, None, None, true, false, false);
+
+        // make pawn start move
+        assert!(make_move(pawn_start_mv, &mut white_ep_state).is_ok());
+        assert_eq!(white_ep_state.position.en_passant, Some(Square::E3));
+
+        // make capture move
+        assert!(make_move(capture_mv, &mut white_ep_state).is_ok());
+        assert_eq!(white_ep_state.position.en_passant, None);
+        assert_eq!(white_ep_state.position.board.piece(&Square::E3), Some(Piece::BlackPawn));
+        assert_eq!(white_ep_state.position.board.piece(&Square::E4), None);
+
+        // unmake capture move
+        assert!(unmake_move(capture_mv, &mut white_ep_state).is_ok());
+        assert_eq!(white_ep_state.position.en_passant, Some(Square::E3));
+        assert_eq!(white_ep_state.position.board.piece(&Square::E4), Some(Piece::WhitePawn));
+        assert_eq!(white_ep_state.position.board.piece(&Square::F4), Some(Piece::BlackPawn));
+
+        // unmake pawn start move
+        assert!(unmake_move(pawn_start_mv, &mut white_ep_state).is_ok());
+        assert_eq!(white_ep_state.position.en_passant, None);
+        assert_eq!(white_ep_state.position.board.piece(&Square::E2), Some(Piece::WhitePawn));
+    }
 
     #[test]
     fn test_make_unmake_move_capture() {}
