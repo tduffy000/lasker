@@ -555,7 +555,26 @@ mod tests {
     }
 
     #[test]
-    fn test_make_unmake_move_capture() {}
+    fn test_make_unmake_move_capture() {
+        let starting_fen = "rnbqkb1r/ppp1pppp/5n2/3p2B1/3P4/2N5/PPP1PPPP/R2QKBNR b KQkq - 0 1";
+        let mut state = GameState::from_fen(starting_fen).unwrap();
+
+        let capture_black_knight_f6 = Move::new(Square::G5, Square::F6, Some(Piece::BlackKnight), None, false, false, false);
+        let capture_white_bishop_f6 = Move::new(Square::E7, Square::F6, Some(Piece::WhiteBishop), None, false, true, false);
+
+        // TODO: check on material diffs
+        assert!(make_move(capture_black_knight_f6, &mut state).is_ok());
+        assert_eq!(state.position.board.piece(&Square::F6), Some(Piece::WhiteBishop));
+        
+        assert!(make_move(capture_white_bishop_f6, &mut state).is_ok());
+        assert_eq!(state.position.board.piece(&Square::F6), Some(Piece::BlackPawn));
+
+        assert!(unmake_move(capture_white_bishop_f6, &mut state).is_ok());
+        assert_eq!(state.position.board.piece(&Square::F6), Some(Piece::WhiteBishop));
+        
+        assert!(unmake_move(capture_black_knight_f6, &mut state).is_ok());
+        assert_eq!(state.position.board.piece(&Square::F6), Some(Piece::BlackKnight));
+    }
 
     #[test]
     fn test_make_unmake_move_promotion() {}
