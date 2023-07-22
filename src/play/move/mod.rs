@@ -108,7 +108,16 @@ pub fn make_move(mv: Move, state: &mut GameState) -> Result<(), MoveError> {
 ///
 ///
 pub fn unmake_move(mv: Move, state: &mut GameState) -> Result<(), MoveError> {
-    state.position.board.move_piece(mv.to_sq(), mv.from_sq())?;
+    if let Some(piece) = mv.promoted() {
+        state.position.board.remove_piece(mv.to_sq())?;
+        let pawn = match piece.color() {
+            Color::White => Piece::WhitePawn,
+            Color::Black => Piece::BlackPawn,
+        };
+        state.position.board.add_piece(pawn, mv.from_sq())?;
+    } else {
+        state.position.board.move_piece(mv.to_sq(), mv.from_sq())?;
+    }
 
     if let Some(piece) = mv.captured() {
         state.position.board.add_piece(piece, mv.to_sq())?;
@@ -132,15 +141,6 @@ pub fn unmake_move(mv: Move, state: &mut GameState) -> Result<(), MoveError> {
         state.position.en_passant = Some(mv.to_sq());
     } else {
         state.position.en_passant = None
-    }
-
-    if let Some(piece) = mv.promoted() {
-        state.position.board.remove_piece(mv.to_sq())?;
-        let pawn = match piece.color() {
-            Color::White => Piece::WhitePawn,
-            Color::Black => Piece::BlackPawn,
-        };
-        state.position.board.add_piece(pawn, mv.from_sq())?;
     }
 
     state.ply -= 1;
@@ -577,7 +577,21 @@ mod tests {
     }
 
     #[test]
-    fn test_make_unmake_move_promotion() {}
+    fn test_make_unmake_move_promotion() {
+        let fen = "8/6P1/8/8/1B1k4/8/1K3n1p/8 b - - 0 1";
+        let mut state = GameState::from_fen(fen).unwrap();
+
+        let black_h2_promo = Move::new(Square::H2, Square::H1, None, Some(Piece::BlackQueen), false, false, false);
+        let white_g7_promo = Move::new(Square::G7, Square::G8, None, Some(Piece::WhiteQueen), false, false, false);
+
+        assert!(make_move(black_h2_promo, &mut state).is_ok());
+        assert!(make_move(white_g7_promo, &mut state).is_ok());
+        assert!(unmake_move(white_g7_promo, &mut state).is_ok());
+        assert!(unmake_move(black_h2_promo, &mut state).is_ok());
+    }
+
+    #[test]
+    fn test_make_unmake_move_capture_promotion() {}
 
     #[test]
     fn test_make_unmake_move_pawn_start() {}
