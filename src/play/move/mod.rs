@@ -146,14 +146,19 @@ pub fn unmake_move(mv: Move, state: &mut GameState) -> Result<(), MoveError> {
     state.ply -= 1;
     state.position.flip_side();
 
-    state.fifty_move_counter = state.fifty_move_country_hist
-        .pop()
-        .ok_or(MoveError::new(MoveErrorType::InsufficientHistory("fifty_move_counter".to_string())))?;
-    
-    state.position.castling_permissions = state.position.castling_perms_history
-        .pop()
-        .ok_or(MoveError::new(MoveErrorType::InsufficientHistory("castling_permissions".to_string())))?;
-    
+    state.fifty_move_counter = state.fifty_move_country_hist.pop().ok_or(MoveError::new(
+        MoveErrorType::InsufficientHistory("fifty_move_counter".to_string()),
+    ))?;
+
+    state.position.castling_permissions =
+        state
+            .position
+            .castling_perms_history
+            .pop()
+            .ok_or(MoveError::new(MoveErrorType::InsufficientHistory(
+                "castling_permissions".to_string(),
+            )))?;
+
     Ok(())
 }
 
@@ -539,19 +544,31 @@ mod tests {
         // make capture move
         assert!(make_move(capture_mv, &mut white_ep_state).is_ok());
         assert_eq!(white_ep_state.position.en_passant, None);
-        assert_eq!(white_ep_state.position.board.piece(&Square::E3), Some(Piece::BlackPawn));
+        assert_eq!(
+            white_ep_state.position.board.piece(&Square::E3),
+            Some(Piece::BlackPawn)
+        );
         assert_eq!(white_ep_state.position.board.piece(&Square::E4), None);
 
         // unmake capture move
         assert!(unmake_move(capture_mv, &mut white_ep_state).is_ok());
         assert_eq!(white_ep_state.position.en_passant, Some(Square::E3));
-        assert_eq!(white_ep_state.position.board.piece(&Square::E4), Some(Piece::WhitePawn));
-        assert_eq!(white_ep_state.position.board.piece(&Square::F4), Some(Piece::BlackPawn));
+        assert_eq!(
+            white_ep_state.position.board.piece(&Square::E4),
+            Some(Piece::WhitePawn)
+        );
+        assert_eq!(
+            white_ep_state.position.board.piece(&Square::F4),
+            Some(Piece::BlackPawn)
+        );
 
         // unmake pawn start move
         assert!(unmake_move(pawn_start_mv, &mut white_ep_state).is_ok());
         assert_eq!(white_ep_state.position.en_passant, None);
-        assert_eq!(white_ep_state.position.board.piece(&Square::E2), Some(Piece::WhitePawn));
+        assert_eq!(
+            white_ep_state.position.board.piece(&Square::E2),
+            Some(Piece::WhitePawn)
+        );
     }
 
     #[test]
@@ -559,21 +576,49 @@ mod tests {
         let starting_fen = "rnbqkb1r/ppp1pppp/5n2/3p2B1/3P4/2N5/PPP1PPPP/R2QKBNR b KQkq - 0 1";
         let mut state = GameState::from_fen(starting_fen).unwrap();
 
-        let capture_black_knight_f6 = Move::new(Square::G5, Square::F6, Some(Piece::BlackKnight), None, false, false, false);
-        let capture_white_bishop_f6 = Move::new(Square::E7, Square::F6, Some(Piece::WhiteBishop), None, false, true, false);
+        let capture_black_knight_f6 = Move::new(
+            Square::G5,
+            Square::F6,
+            Some(Piece::BlackKnight),
+            None,
+            false,
+            false,
+            false,
+        );
+        let capture_white_bishop_f6 = Move::new(
+            Square::E7,
+            Square::F6,
+            Some(Piece::WhiteBishop),
+            None,
+            false,
+            true,
+            false,
+        );
 
         // TODO: check on material diffs
         assert!(make_move(capture_black_knight_f6, &mut state).is_ok());
-        assert_eq!(state.position.board.piece(&Square::F6), Some(Piece::WhiteBishop));
-        
+        assert_eq!(
+            state.position.board.piece(&Square::F6),
+            Some(Piece::WhiteBishop)
+        );
+
         assert!(make_move(capture_white_bishop_f6, &mut state).is_ok());
-        assert_eq!(state.position.board.piece(&Square::F6), Some(Piece::BlackPawn));
+        assert_eq!(
+            state.position.board.piece(&Square::F6),
+            Some(Piece::BlackPawn)
+        );
 
         assert!(unmake_move(capture_white_bishop_f6, &mut state).is_ok());
-        assert_eq!(state.position.board.piece(&Square::F6), Some(Piece::WhiteBishop));
-        
+        assert_eq!(
+            state.position.board.piece(&Square::F6),
+            Some(Piece::WhiteBishop)
+        );
+
         assert!(unmake_move(capture_black_knight_f6, &mut state).is_ok());
-        assert_eq!(state.position.board.piece(&Square::F6), Some(Piece::BlackKnight));
+        assert_eq!(
+            state.position.board.piece(&Square::F6),
+            Some(Piece::BlackKnight)
+        );
     }
 
     #[test]
@@ -581,8 +626,24 @@ mod tests {
         let fen = "8/6P1/8/8/1B1k4/8/1K3n1p/8 b - - 0 1";
         let mut state = GameState::from_fen(fen).unwrap();
 
-        let black_h2_promo = Move::new(Square::H2, Square::H1, None, Some(Piece::BlackQueen), false, false, false);
-        let white_g7_promo = Move::new(Square::G7, Square::G8, None, Some(Piece::WhiteQueen), false, false, false);
+        let black_h2_promo = Move::new(
+            Square::H2,
+            Square::H1,
+            None,
+            Some(Piece::BlackQueen),
+            false,
+            false,
+            false,
+        );
+        let white_g7_promo = Move::new(
+            Square::G7,
+            Square::G8,
+            None,
+            Some(Piece::WhiteQueen),
+            false,
+            false,
+            false,
+        );
 
         assert!(make_move(black_h2_promo, &mut state).is_ok());
         assert!(make_move(white_g7_promo, &mut state).is_ok());
@@ -595,8 +656,24 @@ mod tests {
         let fen = "6b1/5P2/7n/8/8/2K5/7p/4k1R1 w - - 0 1";
         let mut state = GameState::from_fen(fen).unwrap();
 
-        let white_take_g8_promo = Move::new(Square::F7, Square::G8, Some(Piece::BlackBishop), Some(Piece::WhiteQueen), false, false, false);
-        let black_take_g1_promo = Move::new(Square::H2, Square::G1, Some(Piece::WhiteRook), Some(Piece::BlackQueen), false, false, false);
+        let white_take_g8_promo = Move::new(
+            Square::F7,
+            Square::G8,
+            Some(Piece::BlackBishop),
+            Some(Piece::WhiteQueen),
+            false,
+            false,
+            false,
+        );
+        let black_take_g1_promo = Move::new(
+            Square::H2,
+            Square::G1,
+            Some(Piece::WhiteRook),
+            Some(Piece::BlackQueen),
+            false,
+            false,
+            false,
+        );
 
         assert!(make_move(white_take_g8_promo, &mut state).is_ok());
         assert!(make_move(black_take_g1_promo, &mut state).is_ok());
