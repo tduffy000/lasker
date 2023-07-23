@@ -591,7 +591,18 @@ mod tests {
     }
 
     #[test]
-    fn test_make_unmake_move_capture_promotion() {}
+    fn test_make_unmake_move_capture_promotion() {
+        let fen = "6b1/5P2/7n/8/8/2K5/7p/4k1R1 w - - 0 1";
+        let mut state = GameState::from_fen(fen).unwrap();
+
+        let white_take_g8_promo = Move::new(Square::F7, Square::G8, Some(Piece::BlackBishop), Some(Piece::WhiteQueen), false, false, false);
+        let black_take_g1_promo = Move::new(Square::H2, Square::G1, Some(Piece::WhiteRook), Some(Piece::BlackQueen), false, false, false);
+
+        assert!(make_move(white_take_g8_promo, &mut state).is_ok());
+        assert!(make_move(black_take_g1_promo, &mut state).is_ok());
+        assert!(unmake_move(black_take_g1_promo, &mut state).is_ok());
+        assert!(unmake_move(white_take_g8_promo, &mut state).is_ok());
+    }
 
     #[test]
     fn test_make_unmake_move_pawn_start() {}
