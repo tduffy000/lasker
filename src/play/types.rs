@@ -463,8 +463,26 @@ impl TryFrom<char> for CastlingRight {
 }
 
 // bits = [ wK, wQ, bK, bQ ]
-#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub struct CastlingRights(pub u8);
+
+impl fmt::Debug for CastlingRights {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        if self.white_kingside() {
+            f.write_char('K')?
+        }
+        if self.white_queenside() {
+            f.write_char('Q')?
+        }
+        if self.black_kingside() {
+            f.write_char('k')?
+        }
+        if self.black_queenside() {
+            f.write_char('q')?
+        }
+        Ok(())
+    }
+}
 
 impl CastlingRights {
     pub fn from_fen(fen: impl ToString) -> Result<Self, FENParsingError> {
