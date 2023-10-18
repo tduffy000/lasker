@@ -23,6 +23,15 @@ pub enum Color {
     Black,
 }
 
+impl Color {
+    fn pawn_mv_dir(&self) -> Direction {
+        match self {
+            Color::White => Direction::North,
+            Color::Black => Direction::South,
+        }
+    }
+}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
 #[repr(u8)]
 pub enum File {

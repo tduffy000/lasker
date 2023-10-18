@@ -24,9 +24,23 @@ pub fn make_move(mv: Move, state: &mut GameState) -> Result<(), MoveError> {
         state.fifty_move_counter += 1;
     }
 
-    if mv.captured().is_some() {
+    if mv.captured().is_some() & !mv.en_passant() {
         state.position.board.remove_piece(mv.to_sq())?;
+    } else if mv.captured().is_some() & mv.en_passant() {
+        let dir = match state.position.side_to_move {
+            Color::White => Direction::South, // white moving, capture black pawn on sq south of en passant sq
+            Color::Black => Direction::North, // black moving, capture white pawn on sq north of en passant sq
+        };
+        let capture_sq = match state.position.en_passant {
+            Some(sq) => Square::from_mailbox_no(sq + dir as i8),
+            None => {
+                let msg = "Expected en_passant".to_string();
+                return Err(MoveError::new(MoveErrorType::StateMismatch(msg)))
+            },
+        };
+        let _ = state.position.board.remove_piece(capture_sq)?;
     }
+
     state.position.board.move_piece(mv.from_sq(), mv.to_sq())?;
     if mv.castle() {
         if mv.from_sq() == Square::E1 {
@@ -67,15 +81,6 @@ pub fn make_move(mv: Move, state: &mut GameState) -> Result<(), MoveError> {
         state.position.castling_permissions.0 &=
             CastlingRights::all().0 - CastlingRight::BlackKing as u8;
     };
-
-    if mv.en_passant() {
-        let dir = match state.position.side_to_move {
-            Color::White => Direction::South, // white moving, capture black pawn on sq south of en passant sq
-            Color::Black => Direction::North, // black moving, capture white pawn on sq north of en passant sq
-        };
-        let capture_sq = Square::from_mailbox_no(state.position.en_passant.unwrap() + dir as i8);
-        let _ = state.position.board.remove_piece(capture_sq)?;
-    }
 
     if mv.pawn_start() {
         let dir = match state.position.side_to_move {
@@ -119,8 +124,10 @@ pub fn unmake_move(mv: Move, state: &mut GameState) -> Result<(), MoveError> {
         state.position.board.move_piece(mv.to_sq(), mv.from_sq())?;
     }
 
-    if let Some(piece) = mv.captured() {
-        state.position.board.add_piece(piece, mv.to_sq())?;
+    if !mv.en_passant() {
+        if let Some(piece) = mv.captured() {
+            state.position.board.add_piece(piece, mv.to_sq())?;
+        }
     }
 
     // TODO: idk about the first castling condition
@@ -535,7 +542,7 @@ mod tests {
         let mut white_ep_state = GameState::from_fen(white_ep_fen).unwrap();
 
         let pawn_start_mv = Move::new(Square::E2, Square::E4, None, None, false, true, false);
-        let capture_mv = Move::new(Square::F4, Square::E3, None, None, true, false, false);
+        let capture_mv = Move::new(Square::F4, Square::E3, Some(Piece::WhitePawn), None, true, false, false);
 
         // make pawn start move
         assert!(make_move(pawn_start_mv, &mut white_ep_state).is_ok());
@@ -561,6 +568,7 @@ mod tests {
             white_ep_state.position.board.piece(&Square::F4),
             Some(Piece::BlackPawn)
         );
+        assert!(!white_ep_state.position.board.sq_taken(Square::E3));
 
         // unmake pawn start move
         assert!(unmake_move(pawn_start_mv, &mut white_ep_state).is_ok());

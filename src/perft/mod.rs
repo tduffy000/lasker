@@ -9,7 +9,13 @@ pub fn run_perft(state: &mut GameState, depth: u64) -> u64 {
         .legal_moves()
         .map(|mv| {
             let mut s = state.clone();
-            make_move(mv, &mut s);
+            match make_move(mv, &mut s) {
+                Ok(()) => {}
+                Err(e) => {
+                    println!("error making move: {:?}", mv.to_string());
+                    e.print_msg()
+                },
+            };
             let nodes: u64 = perft(&mut s, depth - 1);
             println!("{mv}: {nodes}");
             nodes
@@ -23,11 +29,23 @@ fn perft(state: &mut GameState, depth: u64) -> u64 {
     }
     let mut nodes: u64 = 0;
     for mv in state.position.legal_moves() {
-        make_move(mv, state);
+        match make_move(mv, state) {
+            Ok(()) => {}
+            Err(e) => {
+                println!("\n\rerror making move: {:?}", mv.to_string());
+                println!("board: {:?}", state.position.board);
+                e.print_msg()
+            },
+        };
         nodes += perft(state, depth - 1);
-        unmake_move(mv, state);
+        match unmake_move(mv, state) {
+            Ok(()) => {}
+            Err(e) => {
+                println!("\n\rerror unmaking move: {:?}", mv.to_string());
+                println!("board: {:?}", state.position.board);
+                e.print_msg()
+            },
+        };
     }
     nodes
 }
-
-// add a simple test for perft 2

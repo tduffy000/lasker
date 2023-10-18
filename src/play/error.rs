@@ -8,6 +8,7 @@ pub enum MoveErrorType {
     SquareTakenError(Square),
     NoPieceOnSquareError(Square),
     InsufficientHistory(String),
+    StateMismatch(String),
 }
 
 impl MoveError {
@@ -20,6 +21,7 @@ impl MoveError {
             MoveErrorType::SquareTakenError(sq) => format!("Square: {} is already taken", sq),
             MoveErrorType::NoPieceOnSquareError(sq) => format!("No piece on square: {}", sq),
             MoveErrorType::InsufficientHistory(s) => format!("Tried popping from empty: {}", s),
+            MoveErrorType::StateMismatch(s) => s.clone(),
         };
         eprintln!("{}", msg)
     }
