@@ -7,7 +7,6 @@ use super::{
     utils,
 };
 
-// TODO: needs info about check and what not
 #[derive(Debug, Clone, PartialEq, PartialOrd, Eq, Ord)]
 pub struct Position {
     pub board: Board,
@@ -15,6 +14,10 @@ pub struct Position {
     pub en_passant: Option<Square>,
     pub castling_permissions: CastlingRights, // bits = [ wK, wQ, bK, bQ ]
     pub castling_perms_history: Vec<CastlingRights>,
+    pub checkers: [Bitboard; 2],
+    pub blockers_for_king: [Bitboard; 2],
+    pub pinners: [Bitboard; 2],
+    pub check_squares: Vec<Square>,
 }
 
 impl Default for Position {
@@ -25,6 +28,10 @@ impl Default for Position {
             en_passant: None,
             castling_permissions: CastlingRights::all(),
             castling_perms_history: vec![],
+            checkers: [Bitboard::empty(); 2],
+            blockers_for_king: [Bitboard::empty(); 2],
+            pinners: [Bitboard::empty(); 2],
+            check_squares: vec![],
         }
     }
 }
@@ -465,22 +472,12 @@ mod tests {
     #[test]
     fn test_legal_moves() {}
 
-    // #[test]
-    // fn test_board_state_legal_moves_pins_are_illegal() {
-    //     let state = State::from_fen("8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1").unwrap();
-    //     let invalid_mv = Move::new(
-    //         Square::B5,
-    //         Square::B6,
-    //         None,
-    //         None,
-    //         false,
-    //         false,
-    //         false
-    //     );
-    //     assert_eq!(state.legal_moves().filter(|mv| *mv == invalid_mv).count(), 0);
-
-    //     // find another example (pinning a different piece besides a pawn)
-    // }
+    #[test]
+    fn test_legal_moves_check_is_illegal() {
+        // wQueen on a4 pins bPawn on d7 
+        let pos = Position::from_fen("rnbqkbnr/1ppppppp/8/p7/Q7/2P5/PP1PPPPP/RNB1KBNR b KQkq -").unwrap();
+        assert_eq!(pos.legal_moves().filter(|m| format!("{}", m) == "d7d6").count(), 0);
+    }
 
     #[test]
     fn test_is_square_attacked() {
