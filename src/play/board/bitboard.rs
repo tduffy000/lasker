@@ -47,6 +47,20 @@ impl Into<Vec<Square>> for Bitboard {
     }
 }
 
+impl Iterator for Bitboard {
+    type Item = Square;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let lsb = self.0.trailing_zeros();
+        if lsb == 64 {
+            None
+        } else {
+            self.0 -= 0b1 << lsb;
+            Some(SQUARES[lsb as usize])
+        }
+    }
+}
+
 impl Bitboard {
     pub fn empty() -> Self {
         Bitboard(0x0)
@@ -168,6 +182,30 @@ mod tests {
         e2.sort();
         r2.sort();
         assert_eq!(e2, r2)
+    }
+
+    #[test]
+    fn test_into_iter() {
+        let exp_sqs: Vec<Square> = vec![
+            Square::A1,
+            Square::B1,
+            Square::C1,
+            Square::D1,
+            Square::E1,
+            Square::F1,
+            Square::G1,
+            Square::H1
+        ];
+        let res_sqs: Vec<Square> = Bitboard(0b11111111).into_iter().collect();
+        assert_eq!(exp_sqs, res_sqs);
+        
+        let all_sq: Vec<Square> = SQUARES.to_vec();
+        let all_sq_from_bb: Vec<Square> = Bitboard::universe().into_iter().collect();
+        assert_eq!(all_sq, all_sq_from_bb);
+
+        let no_sq: Vec<Square> = vec![];
+        let no_sq_from_bb: Vec<Square> = Bitboard::empty().into_iter().collect();
+        assert_eq!(no_sq, no_sq_from_bb);
     }
 
     #[test]
