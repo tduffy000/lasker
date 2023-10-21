@@ -14,7 +14,7 @@ pub fn run_perft(state: &mut GameState, depth: u64) -> u64 {
                 Err(e) => {
                     println!("error making move: {:?}", mv.to_string());
                     e.print_msg()
-                },
+                }
             };
             let nodes: u64 = perft(&mut s, depth - 1);
             println!("{mv}: {nodes}");
@@ -35,7 +35,7 @@ fn perft(state: &mut GameState, depth: u64) -> u64 {
                 println!("\n\rerror making move: {:?}", mv.to_string());
                 println!("board: {:?}", state.position.board);
                 e.print_msg()
-            },
+            }
         };
         nodes += perft(state, depth - 1);
         match unmake_move(mv, state) {
@@ -44,7 +44,7 @@ fn perft(state: &mut GameState, depth: u64) -> u64 {
                 println!("\n\rerror unmaking move: {:?}", mv.to_string());
                 println!("board: {:?}", state.position.board);
                 e.print_msg()
-            },
+            }
         };
     }
     nodes

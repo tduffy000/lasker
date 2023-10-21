@@ -194,11 +194,11 @@ mod tests {
             Square::E1,
             Square::F1,
             Square::G1,
-            Square::H1
+            Square::H1,
         ];
         let res_sqs: Vec<Square> = Bitboard(0b11111111).into_iter().collect();
         assert_eq!(exp_sqs, res_sqs);
-        
+
         let all_sq: Vec<Square> = SQUARES.to_vec();
         let all_sq_from_bb: Vec<Square> = Bitboard::universe().into_iter().collect();
         assert_eq!(all_sq, all_sq_from_bb);

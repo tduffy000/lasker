@@ -5,10 +5,10 @@ pub(in crate::play) mod constants;
 mod error;
 pub mod key;
 pub mod r#move;
+pub mod move_gen;
 pub(in crate::play) mod position;
 pub(in crate::play) mod types;
 mod utils;
-pub mod move_gen;
 
 use error::FENParsingError;
 

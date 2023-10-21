@@ -35,8 +35,8 @@ pub fn make_move(mv: Move, state: &mut GameState) -> Result<(), MoveError> {
             Some(sq) => Square::from_mailbox_no(sq + dir as i8),
             None => {
                 let msg = "Expected en_passant".to_string();
-                return Err(MoveError::new(MoveErrorType::StateMismatch(msg)))
-            },
+                return Err(MoveError::new(MoveErrorType::StateMismatch(msg)));
+            }
         };
         let _ = state.position.board.remove_piece(capture_sq)?;
     }
@@ -177,7 +177,7 @@ pub enum MoveType {
     Normal,
     Promotion,
     EnPassant,
-    Castle
+    Castle,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
@@ -563,7 +563,15 @@ mod tests {
         let mut white_ep_state = GameState::from_fen(white_ep_fen).unwrap();
 
         let pawn_start_mv = Move::new(Square::E2, Square::E4, None, None, false, true, false);
-        let capture_mv = Move::new(Square::F4, Square::E3, Some(Piece::WhitePawn), None, true, false, false);
+        let capture_mv = Move::new(
+            Square::F4,
+            Square::E3,
+            Some(Piece::WhitePawn),
+            None,
+            true,
+            false,
+            false,
+        );
 
         // make pawn start move
         assert!(make_move(pawn_start_mv, &mut white_ep_state).is_ok());
