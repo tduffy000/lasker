@@ -8,6 +8,7 @@ pub mod r#move;
 pub(in crate::play) mod position;
 pub(in crate::play) mod types;
 mod utils;
+pub mod move_gen;
 
 use error::FENParsingError;
 

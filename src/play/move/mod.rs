@@ -172,6 +172,15 @@ pub fn unmake_move(mv: Move, state: &mut GameState) -> Result<(), MoveError> {
 const MOVE_LIST_SIZE: usize = 255;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
+#[repr(u8)]
+pub enum MoveType {
+    Normal,
+    Promotion,
+    EnPassant,
+    Castle
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Move {
     repr: u32,
     pub score: i8,
@@ -275,6 +284,18 @@ impl Move {
 
     pub fn en_passant(&self) -> bool {
         ((self.repr >> 20) & (0b1 as u32)) == 0b1
+    }
+
+    pub fn move_type(&self) -> MoveType {
+        if self.en_passant() {
+            MoveType::EnPassant
+        } else if self.castle() {
+            MoveType::Castle
+        } else if self.promoted().is_some() {
+            MoveType::Promotion
+        } else {
+            MoveType::Normal
+        }
     }
 
     pub fn pawn_start(&self) -> bool {

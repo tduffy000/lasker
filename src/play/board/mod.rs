@@ -58,7 +58,7 @@ impl Board {
             | self.black_king
     }
 
-    pub fn bitboard(&self, piece: &Piece) -> Bitboard {
+    pub fn bitboard(&self, piece: Piece) -> Bitboard {
         match piece {
             Piece::WhitePawn => self.white_pawns,
             Piece::WhiteKnight => self.white_knights,
@@ -153,20 +153,20 @@ impl Board {
             Err(MoveError::new(MoveErrorType::SquareTakenError(dest)))
         } else {
             let piece = self.piece(&origin).unwrap();
-            self.remove_piece(origin);
-            self.add_piece(piece, dest);
+            self.remove_piece(origin)?;
+            self.add_piece(piece, dest)?;
             Ok(())
         }
     }
 
-    pub fn pieces(&self, color: Color) -> Vec<&Piece> {
+    pub fn pieces(&self, color: Color) -> Vec<Piece> {
         let mut v = vec![];
         let piece_arr = match color {
-            Color::White => &WHITE_PIECES,
-            Color::Black => &BLACK_PIECES,
+            Color::White => WHITE_PIECES,
+            Color::Black => BLACK_PIECES,
         };
         for piece in piece_arr {
-            if self.bitboard(&piece).0 != 0x0 {
+            if self.bitboard(piece).0 != 0x0 {
                 v.push(piece)
             }
         }

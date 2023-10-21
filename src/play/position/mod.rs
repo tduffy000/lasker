@@ -4,7 +4,7 @@ use super::{
     error::FENParsingError,
     r#move::{Move, MoveList},
     types::{CastlingRights, Color, Direction, Piece, Rank, Square},
-    utils,
+    utils, move_gen::MoveGenerator,
 };
 
 #[derive(Debug, Clone, PartialEq, PartialOrd, Eq, Ord)]
@@ -17,7 +17,7 @@ pub struct Position {
     pub checkers: [Bitboard; 2],
     pub blockers_for_king: [Bitboard; 2],
     pub pinners: [Bitboard; 2],
-    pub check_squares: Vec<Square>,
+    pub check_squares: [Bitboard; 8],
 }
 
 impl Default for Position {
@@ -31,7 +31,7 @@ impl Default for Position {
             checkers: [Bitboard::empty(); 2],
             blockers_for_king: [Bitboard::empty(); 2],
             pinners: [Bitboard::empty(); 2],
-            check_squares: vec![],
+            check_squares: [Bitboard::empty(); 8],
         }
     }
 }
@@ -80,15 +80,13 @@ impl Position {
         };
     }
 
-    ///
-    ///
+    // TODO: you need to be able to check if a move puts yourself in check
     pub fn legal_moves(&self) -> MoveList {
         let color = self.side_to_move;
         let mut moves = MoveList::empty();
 
         for piece in self.board.pieces(color) {
-            let piece_squares: Vec<Square> = self.board.bitboard(piece).into();
-            for sq in piece_squares {
+            for sq in self.board.bitboard(piece) {
                 match piece {
                     Piece::WhitePawn => {
                         let fwd_mailbox_no = sq + Direction::North as i8;
@@ -305,9 +303,7 @@ impl Position {
                     | Piece::BlackRook
                     | Piece::WhiteQueen
                     | Piece::BlackQueen => {
-                        let dirs = &DIRECTIONS[piece.attack_direction_idx()].to_vec();
-                        let color = piece.color();
-                        utils::recur_move_search(&self.board, color, dirs, &mut moves, sq, 1);
+                        MoveGenerator::generate_moves(&self, piece, sq, color, &mut moves);
                     }
                     Piece::WhiteKing | Piece::BlackKing => {
                         // normal moves
@@ -413,7 +409,7 @@ impl Position {
         };
         for piece in piece_array {
             let attack_dirs = DIRECTIONS[piece.attack_direction_idx()].to_vec();
-            let attack_bb = self.board.bitboard(piece);
+            let attack_bb = self.board.bitboard(*piece);
 
             if attack_bb.0 == 0x0 {
                 continue;
