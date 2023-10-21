@@ -2,9 +2,10 @@ use super::{
     board::{bitboard::Bitboard, Board},
     constants::{BLACK_PIECES, DIRECTIONS, WHITE_PIECES},
     error::FENParsingError,
+    move_gen::MoveGenerator,
     r#move::{Move, MoveList},
     types::{CastlingRights, Color, Direction, Piece, Rank, Square},
-    utils, move_gen::MoveGenerator,
+    utils,
 };
 
 #[derive(Debug, Clone, PartialEq, PartialOrd, Eq, Ord)]
@@ -283,19 +284,7 @@ impl Position {
                         }
                     }
                     Piece::WhiteKnight | Piece::BlackKnight => {
-                        let dirs = &DIRECTIONS[piece.attack_direction_idx()];
-                        for dir in dirs {
-                            let target_sq_mailbox_no = sq + *dir as i8;
-                            if target_sq_mailbox_no >= 0 {
-                                let other_sq = Square::from_mailbox_no(target_sq_mailbox_no);
-                                if !self.board.sq_taken_by_color(other_sq, piece.color()) {
-                                    let captured = self.board.piece(&other_sq);
-                                    moves.push(Move::new(
-                                        sq, other_sq, captured, None, false, false, false,
-                                    ));
-                                }
-                            }
-                        }
+                        MoveGenerator::generate_moves(&self, piece, sq, color, &mut moves);
                     }
                     Piece::WhiteBishop
                     | Piece::BlackBishop
@@ -470,9 +459,15 @@ mod tests {
 
     #[test]
     fn test_legal_moves_check_is_illegal() {
-        // wQueen on a4 pins bPawn on d7 
-        let pos = Position::from_fen("rnbqkbnr/1ppppppp/8/p7/Q7/2P5/PP1PPPPP/RNB1KBNR b KQkq -").unwrap();
-        assert_eq!(pos.legal_moves().filter(|m| format!("{}", m) == "d7d6").count(), 0);
+        // wQueen on a4 pins bPawn on d7
+        let pos =
+            Position::from_fen("rnbqkbnr/1ppppppp/8/p7/Q7/2P5/PP1PPPPP/RNB1KBNR b KQkq -").unwrap();
+        assert_eq!(
+            pos.legal_moves()
+                .filter(|m| format!("{}", m) == "d7d6")
+                .count(),
+            0
+        );
     }
 
     #[test]
