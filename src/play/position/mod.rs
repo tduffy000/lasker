@@ -3,8 +3,8 @@ use super::{
     constants::{BLACK_PIECES, DIRECTIONS, WHITE_PIECES},
     error::FENParsingError,
     move_gen::MoveGenerator,
-    r#move::{Move, MoveList},
-    types::{CastlingRights, Color, Direction, Piece, Rank, Square},
+    r#move::MoveList,
+    types::{CastlingRights, Color, Piece, Square, PieceType},
     utils,
 };
 
@@ -29,6 +29,7 @@ impl Default for Position {
             en_passant: None,
             castling_permissions: CastlingRights::all(),
             castling_perms_history: vec![],
+            // TODO: all the logic updating the below needs to be implemented
             checkers: [Bitboard::empty(); 2],
             blockers_for_king: [Bitboard::empty(); 2],
             pinners: [Bitboard::empty(); 2],
@@ -81,210 +82,17 @@ impl Position {
         };
     }
 
-    // TODO: you need to be able to check if a move puts yourself in check
     pub fn legal_moves(&self) -> MoveList {
         let color = self.side_to_move;
         let mut moves = MoveList::empty();
 
         for piece in self.board.pieces(color) {
             for sq in self.board.bitboard(piece) {
-                match piece {
-                    Piece::WhitePawn => {
-                        let fwd_mailbox_no = sq + Direction::North as i8;
-
-                        // pawn start
-                        if sq.rank() == Rank::Rank2 {
-                            let sq_2_in_front =
-                                Square::from_mailbox_no(sq + 2 * Direction::North as i8);
-                            if (!self.board.sq_taken(Square::from_mailbox_no(fwd_mailbox_no)))
-                                & (!self.board.sq_taken(sq_2_in_front))
-                            {
-                                moves.push(Move::new(
-                                    sq,
-                                    sq_2_in_front,
-                                    None,
-                                    None,
-                                    false,
-                                    true,
-                                    false,
-                                ));
-                            }
-                        }
-
-                        // normal forward & promotion
-                        if fwd_mailbox_no >= 0 {
-                            let fwd_sq = Square::from_mailbox_no(fwd_mailbox_no);
-                            let promoted = if sq.rank() == Rank::Rank7 {
-                                Some(Piece::WhiteQueen)
-                            } else {
-                                None
-                            };
-                            if !self.board.sq_taken(fwd_sq) {
-                                moves.push(Move::new(
-                                    sq, fwd_sq, None, promoted, false, false, false,
-                                ));
-                            }
-                        }
-
-                        // capture + capture promotion
-                        let left_diag_mailbox_no = sq + Direction::NorthWest as i8;
-                        if left_diag_mailbox_no >= 0 {
-                            let ld_sq = Square::from_mailbox_no(left_diag_mailbox_no);
-                            if self.board.sq_taken_by_color(ld_sq, Color::Black) {
-                                let captured = self.board.piece(&ld_sq);
-                                let promoted = if sq.rank() == Rank::Rank7 {
-                                    Some(Piece::WhiteQueen)
-                                } else {
-                                    None
-                                };
-                                moves.push(Move::new(
-                                    sq, ld_sq, captured, promoted, false, false, false,
-                                ));
-                            } else {
-                                if let Some(ep_sq) = self.en_passant {
-                                    if ld_sq == ep_sq {
-                                        moves.push(Move::new(
-                                            sq,
-                                            ld_sq,
-                                            Some(Piece::BlackPawn),
-                                            None,
-                                            true,
-                                            false,
-                                            false,
-                                        ))
-                                    }
-                                }
-                            }
-                        };
-                        let right_diag_mailbox_no = sq + Direction::NorthEast as i8;
-                        if right_diag_mailbox_no >= 0 {
-                            let rd_sq = Square::from_mailbox_no(right_diag_mailbox_no);
-                            if self.board.sq_taken_by_color(rd_sq, Color::Black) {
-                                let captured = self.board.piece(&rd_sq);
-                                let promoted = if sq.rank() == Rank::Rank7 {
-                                    Some(Piece::WhiteQueen)
-                                } else {
-                                    None
-                                };
-                                moves.push(Move::new(
-                                    sq, rd_sq, captured, promoted, false, false, false,
-                                ));
-                            } else {
-                                if let Some(ep_sq) = self.en_passant {
-                                    if rd_sq == ep_sq {
-                                        moves.push(Move::new(
-                                            sq,
-                                            rd_sq,
-                                            Some(Piece::BlackPawn),
-                                            None,
-                                            true,
-                                            false,
-                                            false,
-                                        ))
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    Piece::BlackPawn => {
-                        let fwd_mailbox_no = sq + Direction::South as i8;
-
-                        // pawn start
-                        if sq.rank() == Rank::Rank7 {
-                            let sq_2_in_front =
-                                Square::from_mailbox_no(sq + 2 * Direction::South as i8);
-                            if (!self.board.sq_taken(Square::from_mailbox_no(fwd_mailbox_no)))
-                                & (!self.board.sq_taken(sq_2_in_front))
-                            {
-                                moves.push(Move::new(
-                                    sq,
-                                    sq_2_in_front,
-                                    None,
-                                    None,
-                                    false,
-                                    true,
-                                    false,
-                                ));
-                            }
-                        }
-
-                        // normal forward & promotion
-                        if fwd_mailbox_no >= 0 {
-                            let fwd_sq = Square::from_mailbox_no(fwd_mailbox_no);
-                            let promoted = if sq.rank() == Rank::Rank2 {
-                                Some(Piece::BlackQueen)
-                            } else {
-                                None
-                            };
-                            if !self.board.sq_taken(fwd_sq) {
-                                moves.push(Move::new(
-                                    sq, fwd_sq, None, promoted, false, false, false,
-                                ));
-                            }
-                        }
-
-                        // capture + capture promotion
-                        let left_diag_mailbox_no = sq + Direction::SouthWest as i8;
-                        if left_diag_mailbox_no >= 0 {
-                            let ld_sq = Square::from_mailbox_no(left_diag_mailbox_no);
-                            if self.board.sq_taken_by_color(ld_sq, Color::White) {
-                                let captured = self.board.piece(&ld_sq);
-                                let promoted = if sq.rank() == Rank::Rank7 {
-                                    Some(Piece::BlackQueen)
-                                } else {
-                                    None
-                                };
-                                moves.push(Move::new(
-                                    sq, ld_sq, captured, promoted, false, false, false,
-                                ));
-                            } else {
-                                if let Some(ep_sq) = self.en_passant {
-                                    if ld_sq == ep_sq {
-                                        moves.push(Move::new(
-                                            sq,
-                                            ld_sq,
-                                            Some(Piece::WhitePawn),
-                                            None,
-                                            true,
-                                            false,
-                                            false,
-                                        ))
-                                    }
-                                }
-                            }
-                        };
-                        let right_diag_mailbox_no = sq + Direction::SouthEast as i8;
-                        if right_diag_mailbox_no >= 0 {
-                            let rd_sq = Square::from_mailbox_no(right_diag_mailbox_no);
-                            if self.board.sq_taken_by_color(rd_sq, Color::White) {
-                                let captured = self.board.piece(&rd_sq);
-                                let promoted = if sq.rank() == Rank::Rank2 {
-                                    Some(Piece::BlackQueen)
-                                } else {
-                                    None
-                                };
-                                moves.push(Move::new(
-                                    sq, rd_sq, captured, promoted, false, false, false,
-                                ));
-                            } else {
-                                if let Some(ep_sq) = self.en_passant {
-                                    if rd_sq == ep_sq {
-                                        moves.push(Move::new(
-                                            sq,
-                                            rd_sq,
-                                            Some(Piece::WhitePawn),
-                                            None,
-                                            true,
-                                            false,
-                                            false,
-                                        ))
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    _ => MoveGenerator::generate_moves(&self, piece, sq, &mut moves),
-                };
+                if piece.piece_type() == PieceType::Pawn {
+                    MoveGenerator::generate_pawn_moves(&self, piece, sq, &mut moves);
+                } else {
+                    MoveGenerator::generate_moves(&self, piece, sq, &mut moves);
+                }
             }
         }
         moves

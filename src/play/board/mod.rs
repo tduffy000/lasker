@@ -159,6 +159,7 @@ impl Board {
         }
     }
 
+    // TODO: switch this from Vec to slice (requires Piece::None)
     pub fn pieces(&self, color: Color) -> Vec<Piece> {
         let mut v = vec![];
         let piece_arr = match color {
