@@ -161,6 +161,17 @@ pub enum Piece {
     BlackKing,
 }
 
+#[repr(u8)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum PieceType {
+    Pawn,
+    Knight,
+    Bishop,
+    Rook,
+    Queen,
+    King
+}
+
 impl Piece {
     fn is_minor(self) -> bool {
         IS_MINOR_PIECE[self as usize]
@@ -184,6 +195,17 @@ impl Piece {
             | Piece::BlackRook
             | Piece::BlackQueen
             | Piece::BlackKing => Color::Black,
+        }
+    }
+
+    pub fn piece_type(&self) -> PieceType {
+        match self {
+            Piece::WhitePawn | Piece::BlackPawn => PieceType::Pawn,
+            Piece::WhiteKnight | Piece::BlackKnight => PieceType::Knight,
+            Piece::WhiteBishop | Piece::BlackBishop => PieceType::Bishop,
+            Piece::WhiteRook | Piece::BlackRook => PieceType::Rook,
+            Piece::WhiteQueen | Piece::BlackQueen => PieceType::Queen,
+            Piece::WhiteKing | Piece::BlackKing => PieceType::King
         }
     }
 
