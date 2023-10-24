@@ -305,6 +305,10 @@ impl Move {
     pub fn castle(&self) -> bool {
         ((self.repr >> 22) & (0b1 as u32)) == 0b1
     }
+
+    pub fn is_placeholder(&self) -> bool {
+        self.repr == 0
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]

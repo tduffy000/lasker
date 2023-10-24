@@ -2,14 +2,13 @@ use super::{
     constants::DIRECTIONS,
     position::Position,
     r#move::{Move, MoveList},
-    types::{Color, Piece, Square, PieceType, Direction, Rank},
+    types::{Color, Direction, Piece, PieceType, Rank, Square},
     utils,
 };
 
 pub struct MoveGenerator {}
 
 impl MoveGenerator {
-
     pub fn generate_pawn_moves(
         position: &Position,
         piece: Piece,
@@ -20,20 +19,13 @@ impl MoveGenerator {
             let fwd_mailbox_no = sq + Direction::North as i8;
             // pawn start
             if sq.rank() == Rank::Rank2 {
-                let sq_2_in_front =
-                    Square::from_mailbox_no(sq + 2 * Direction::North as i8);
-                if (!position.board.sq_taken(Square::from_mailbox_no(fwd_mailbox_no)))
+                let sq_2_in_front = Square::from_mailbox_no(sq + 2 * Direction::North as i8);
+                if (!position
+                    .board
+                    .sq_taken(Square::from_mailbox_no(fwd_mailbox_no)))
                     & (!position.board.sq_taken(sq_2_in_front))
                 {
-                    moves.push(Move::new(
-                        sq,
-                        sq_2_in_front,
-                        None,
-                        None,
-                        false,
-                        true,
-                        false,
-                    ));
+                    moves.push(Move::new(sq, sq_2_in_front, None, None, false, true, false));
                 }
             }
 
@@ -45,9 +37,16 @@ impl MoveGenerator {
                 } else {
                     None
                 };
+                let is_pawn_start = sq.rank() == Rank::Rank2;
                 if !position.board.sq_taken(fwd_sq) {
                     moves.push(Move::new(
-                        sq, fwd_sq, None, promoted, false, false, false,
+                        sq,
+                        fwd_sq,
+                        None,
+                        promoted,
+                        false,
+                        is_pawn_start,
+                        false,
                     ));
                 }
             }
@@ -115,20 +114,13 @@ impl MoveGenerator {
             let fwd_mailbox_no = sq + Direction::South as i8;
             // pawn start
             if sq.rank() == Rank::Rank7 {
-                let sq_2_in_front =
-                    Square::from_mailbox_no(sq + 2 * Direction::South as i8);
-                if (!position.board.sq_taken(Square::from_mailbox_no(fwd_mailbox_no)))
+                let sq_2_in_front = Square::from_mailbox_no(sq + 2 * Direction::South as i8);
+                if (!position
+                    .board
+                    .sq_taken(Square::from_mailbox_no(fwd_mailbox_no)))
                     & (!position.board.sq_taken(sq_2_in_front))
                 {
-                    moves.push(Move::new(
-                        sq,
-                        sq_2_in_front,
-                        None,
-                        None,
-                        false,
-                        true,
-                        false,
-                    ));
+                    moves.push(Move::new(sq, sq_2_in_front, None, None, false, true, false));
                 }
             }
 
@@ -140,9 +132,16 @@ impl MoveGenerator {
                 } else {
                     None
                 };
+                let is_pawn_start = sq.rank() == Rank::Rank7;
                 if !position.board.sq_taken(fwd_sq) {
                     moves.push(Move::new(
-                        sq, fwd_sq, None, promoted, false, false, false,
+                        sq,
+                        fwd_sq,
+                        None,
+                        promoted,
+                        false,
+                        is_pawn_start,
+                        false,
                     ));
                 }
             }
@@ -210,12 +209,7 @@ impl MoveGenerator {
     }
 
     // TODO: figure out how this can return MoveList as opposed to mutating it
-    pub fn generate_moves(
-        position: &Position,
-        piece: Piece,
-        sq: Square,
-        moves: &mut MoveList,
-    ) {
+    pub fn generate_moves(position: &Position, piece: Piece, sq: Square, moves: &mut MoveList) {
         if piece.can_slide() {
             let dirs = &DIRECTIONS[piece.attack_direction_idx()].to_vec();
             let color = piece.color();
@@ -246,9 +240,7 @@ impl MoveGenerator {
                         & !position.is_square_attacked(other_sq, piece.opposing_color())
                     {
                         let captured = position.board.piece(&other_sq);
-                        moves.push(Move::new(
-                            sq, other_sq, captured, None, false, false, false,
-                        ));
+                        moves.push(Move::new(sq, other_sq, captured, None, false, false, false));
                     }
                 }
             }
@@ -324,5 +316,32 @@ impl MoveGenerator {
                 }
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_generate_pawn_moves_pawn_start() {
+        let pos = Position::default();
+        let moves = &mut MoveList::empty();
+
+        MoveGenerator::generate_pawn_moves(&pos, Piece::WhitePawn, Square::A2, moves);
+
+        let expected = vec![
+            Move::new(Square::A2, Square::A3, None, None, false, true, false),
+            Move::new(Square::A2, Square::A4, None, None, false, true, false),
+        ];
+        assert_eq!(
+            moves
+                .sorted()
+                .filter(|mv| !mv.is_placeholder())
+                .collect::<Vec<Move>>(),
+            expected
+        );
+
+        // TODO: add black pawns
     }
 }

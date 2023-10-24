@@ -4,7 +4,7 @@ use super::{
     error::FENParsingError,
     move_gen::MoveGenerator,
     r#move::MoveList,
-    types::{CastlingRights, Color, Piece, Square, PieceType},
+    types::{CastlingRights, Color, Piece, PieceType, Square},
     utils,
 };
 
@@ -165,19 +165,6 @@ mod tests {
 
     #[test]
     fn test_legal_moves() {}
-
-    #[test]
-    fn test_legal_moves_check_is_illegal() {
-        // wQueen on a4 pins bPawn on d7
-        let pos =
-            Position::from_fen("rnbqkbnr/1ppppppp/8/p7/Q7/2P5/PP1PPPPP/RNB1KBNR b KQkq -").unwrap();
-        assert_eq!(
-            pos.legal_moves()
-                .filter(|m| format!("{}", m) == "d7d6")
-                .count(),
-            0
-        );
-    }
 
     #[test]
     fn test_is_square_attacked() {

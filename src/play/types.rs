@@ -169,7 +169,7 @@ pub enum PieceType {
     Bishop,
     Rook,
     Queen,
-    King
+    King,
 }
 
 impl Piece {
@@ -205,7 +205,7 @@ impl Piece {
             Piece::WhiteBishop | Piece::BlackBishop => PieceType::Bishop,
             Piece::WhiteRook | Piece::BlackRook => PieceType::Rook,
             Piece::WhiteQueen | Piece::BlackQueen => PieceType::Queen,
-            Piece::WhiteKing | Piece::BlackKing => PieceType::King
+            Piece::WhiteKing | Piece::BlackKing => PieceType::King,
         }
     }
 
