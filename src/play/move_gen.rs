@@ -37,7 +37,6 @@ impl MoveGenerator {
                 } else {
                     None
                 };
-                let is_pawn_start = sq.rank() == Rank::Rank2;
                 if !position.board.sq_taken(fwd_sq) {
                     moves.push(Move::new(
                         sq,
@@ -45,7 +44,7 @@ impl MoveGenerator {
                         None,
                         promoted,
                         false,
-                        is_pawn_start,
+                        false,
                         false,
                     ));
                 }
@@ -132,7 +131,6 @@ impl MoveGenerator {
                 } else {
                     None
                 };
-                let is_pawn_start = sq.rank() == Rank::Rank7;
                 if !position.board.sq_taken(fwd_sq) {
                     moves.push(Move::new(
                         sq,
@@ -140,7 +138,7 @@ impl MoveGenerator {
                         None,
                         promoted,
                         false,
-                        is_pawn_start,
+                        false,
                         false,
                     ));
                 }
@@ -331,7 +329,7 @@ mod tests {
         MoveGenerator::generate_pawn_moves(&pos, Piece::WhitePawn, Square::A2, moves);
 
         let expected = vec![
-            Move::new(Square::A2, Square::A3, None, None, false, true, false),
+            Move::new(Square::A2, Square::A3, None, None, false, false, false),
             Move::new(Square::A2, Square::A4, None, None, false, true, false),
         ];
         assert_eq!(
