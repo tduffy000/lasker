@@ -30,6 +30,10 @@ pub const DIRECTIONS: [Direction; 16] = [
     Direction::WestNorthL,
 ];
 
+pub const WHITE_PAWN_DIAGONALS: [Direction; 2] = [Direction::NorthWest, Direction::NorthEast];
+
+pub const BLACK_PAWN_DIAGONALS: [Direction; 2] = [Direction::SouthWest, Direction::SouthEast];
+
 pub const PIECES: [Piece; 12] = [
     Piece::WhitePawn,
     Piece::WhiteKnight,

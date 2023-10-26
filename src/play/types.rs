@@ -12,7 +12,10 @@ use crate::play::{
     error::{FENParsingError, InvalidCharError},
 };
 
-use super::error::SquareIndexError;
+use super::{
+    constants::{BLACK_PAWN_DIAGONALS, WHITE_PAWN_DIAGONALS},
+    error::SquareIndexError,
+};
 
 const FEN_BLANK: &str = "-";
 
@@ -24,10 +27,38 @@ pub enum Color {
 }
 
 impl Color {
-    fn pawn_mv_dir(&self) -> Direction {
+    pub fn pawn_push_dir(&self) -> Direction {
         match self {
             Color::White => Direction::North,
             Color::Black => Direction::South,
+        }
+    }
+
+    pub fn pawn_start_rank(&self) -> Rank {
+        match self {
+            Color::White => Rank::Rank2,
+            Color::Black => Rank::Rank7,
+        }
+    }
+
+    pub fn pawn_diagonals(&self) -> &[Direction; 2] {
+        match self {
+            Color::White => &WHITE_PAWN_DIAGONALS,
+            Color::Black => &BLACK_PAWN_DIAGONALS,
+        }
+    }
+
+    pub fn pawn_promo_rank(&self) -> Rank {
+        match self {
+            Color::White => Rank::Rank7,
+            Color::Black => Rank::Rank2,
+        }
+    }
+
+    pub fn opposing(&self) -> Color {
+        match self {
+            Color::White => Color::Black,
+            Color::Black => Color::White,
         }
     }
 }
@@ -195,6 +226,23 @@ impl Piece {
             | Piece::BlackRook
             | Piece::BlackQueen
             | Piece::BlackKing => Color::Black,
+        }
+    }
+
+    pub fn of(piece_type: PieceType, color: Color) -> Piece {
+        match (color, piece_type) {
+            (Color::White, PieceType::Pawn) => Piece::WhitePawn,
+            (Color::White, PieceType::Knight) => Piece::WhiteKnight,
+            (Color::White, PieceType::Bishop) => Piece::WhiteBishop,
+            (Color::White, PieceType::Rook) => Piece::WhiteRook,
+            (Color::White, PieceType::Queen) => Piece::WhiteQueen,
+            (Color::White, PieceType::King) => Piece::WhiteKing,
+            (Color::Black, PieceType::Pawn) => Piece::BlackPawn,
+            (Color::Black, PieceType::Knight) => Piece::BlackKnight,
+            (Color::Black, PieceType::Bishop) => Piece::BlackBishop,
+            (Color::Black, PieceType::Rook) => Piece::BlackRook,
+            (Color::Black, PieceType::Queen) => Piece::BlackQueen,
+            (Color::Black, PieceType::King) => Piece::BlackKing,
         }
     }
 

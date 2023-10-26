@@ -89,7 +89,7 @@ impl Position {
         for piece in self.board.pieces(color) {
             for sq in self.board.bitboard(piece) {
                 if piece.piece_type() == PieceType::Pawn {
-                    MoveGenerator::generate_pawn_moves(&self, piece, sq, &mut moves);
+                    MoveGenerator::generate_pawn_moves(&self, sq, &mut moves);
                 } else {
                     MoveGenerator::generate_moves(&self, piece, sq, &mut moves);
                 }
