@@ -73,6 +73,10 @@ impl Bitboard {
     pub fn pop_count(&self) -> u32 {
         self.0.count_ones()
     }
+
+    pub fn flip(&self) -> Bitboard {
+        Bitboard(!self.0)
+    }
 }
 
 impl BitAnd for Bitboard {
@@ -282,6 +286,12 @@ mod tests {
             bb |= Bitboard(0x1 << i);
             assert_eq!(bb.pop_count(), i + 1);
         }
+    }
+
+    #[test]
+    fn flip() {
+        let bb = Bitboard::empty();
+        assert_eq!(bb.flip(), Bitboard::universe());
     }
 
     fn rm_whitespace(s: impl ToString) -> String {

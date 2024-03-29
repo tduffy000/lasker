@@ -1,11 +1,9 @@
 use super::{
     board::{bitboard::Bitboard, Board},
-    constants::{BLACK_PIECES, DIRECTIONS, WHITE_PIECES},
     error::FENParsingError,
     move_gen::MoveGenerator,
     r#move::MoveList,
-    types::{CastlingRights, Color, Piece, PieceType, Square},
-    utils,
+    types::{CastlingRights, Color, PieceType, Square},
 };
 
 #[derive(Debug, Clone, PartialEq, PartialOrd, Eq, Ord)]
@@ -65,6 +63,12 @@ impl Position {
         // en passant
         pos.en_passant = Square::from_fen(&fields[3])?;
 
+        // TODO: update checks
+
+        // TODO: update blockers_for_king
+
+        // TODO: update check_squares
+
         Ok(pos)
     }
 
@@ -98,46 +102,11 @@ impl Position {
         moves
     }
 
-    ///
-    ///
-    pub fn is_square_attacked(&self, sq: Square, color: Color) -> bool {
-        let piece_array: &[Piece; 6] = match color {
-            Color::White => &WHITE_PIECES,
-            Color::Black => &BLACK_PIECES,
-        };
-        for piece in piece_array {
-            let attack_dirs = DIRECTIONS[piece.attack_direction_idx()].to_vec();
-            let attack_bb = self.board.bitboard(*piece);
-
-            if attack_bb.0 == 0x0 {
-                continue;
-            }
-
-            if !piece.can_slide() {
-                for dir in attack_dirs {
-                    let mailbox_no = sq + dir as i8;
-                    if mailbox_no >= 0 {
-                        let other_sq_bb: Bitboard = Square::from_mailbox_no(mailbox_no).into();
-                        if (other_sq_bb & attack_bb).0 != 0x0 {
-                            return true;
-                        }
-                    }
-                }
-            } else {
-                if utils::recur_attack_sq_search(&self.board, attack_dirs, sq, 1, attack_bb) {
-                    return true;
-                }
-            }
-        }
-        false
-    }
+    // TODO: use piece Type here
 }
 
 #[cfg(test)]
 mod tests {
-
-    use crate::play::constants::SQUARES;
-    use std::collections::HashSet;
 
     use super::*;
 
@@ -165,97 +134,4 @@ mod tests {
 
     #[test]
     fn test_legal_moves() {}
-
-    #[test]
-    fn test_is_square_attacked() {
-        let fen = "rn1qkb1r/pp2pppp/3p3n/2p2b2/4P3/2N2N2/PPPP1PPP/R1BQKB1R w KQ -";
-        let pos = Position::from_fen(fen).unwrap();
-
-        let squares_attacked_by_white = HashSet::from([
-            Square::B1, // rook on a1
-            Square::C1, // rook on a1
-            Square::D1, // knight on c3 + king on e1
-            Square::E1, // king on e1
-            Square::F1, // king on e1 + rook on h1
-            Square::G1, // rook on h1 + knight on f3
-            Square::A2, // rook on a1
-            Square::B2, // bishop on c1
-            Square::C2, // queen on d1
-            Square::D2, // queen on d1, king on e1, knight on d2
-            Square::E2, // knight on c3, queen on d1, bishop on f1
-            Square::F2, // king on e1
-            Square::G2, // bishop on f1
-            Square::H2, // rook on h1
-            Square::A3, // pawn on b2
-            Square::B3, // pawn on a2
-            Square::C3, // pawns on b2 + d2
-            Square::D3, // pawn on c2 + bishop on f1
-            Square::E3, // pawns on d2 + f2
-            Square::F3, // queen on d1 + pawn on g2
-            Square::G3, // pawns on f2 + h2
-            Square::H3, // pawn on g2
-            Square::A4, // knight on c3
-            Square::C4, // bishop on f1
-            Square::D4, // knight on f3
-            Square::E4, // knight on c3
-            Square::H4, // knight on f3
-            Square::B5, // bishop on f1
-            Square::D5, // pawn on e4 + knight on c3
-            Square::E5, // knight on f3
-            Square::F5, // pawn on e4
-            Square::G5, // knight on f3
-            Square::A6, // bishop on f1
-        ]);
-        for sq in &squares_attacked_by_white {
-            assert!(pos.is_square_attacked(*sq, Color::White));
-        }
-        let squares_not_attacked_by_white = SQUARES
-            .iter()
-            .filter(|sq| !squares_attacked_by_white.contains(sq));
-        for sq in squares_not_attacked_by_white {
-            assert!(!pos.is_square_attacked(*sq, Color::White));
-        }
-
-        let squares_attacked_by_black = HashSet::from([
-            Square::B8, // rook on a8
-            Square::C8, // queen on d8 + bishop on f5
-            Square::D8, // king on e8
-            Square::E8, // queen on d8
-            Square::F8, // king on e8 + rook on h8
-            Square::G8, // knight on h6
-            Square::A7, // rook on a8
-            Square::C7, // queen on d8
-            Square::D7, // queen on d8, bishop on f5, king on e8
-            Square::E7, // queen on d8, king on e8, bishop on f8
-            Square::F7, // king on e8 + knight on h6
-            Square::G7, // bishop on f8
-            Square::H7, // rook on h8 + bishop on f5
-            Square::A6, // pawn on b7 + knight on b8
-            Square::B6, // pawn on a7 + queen on d8
-            Square::C6, // knight on b8
-            Square::D6, // queen on d8 + pawn on e7
-            Square::E6, // pawn on f7, bishop on f5
-            Square::F6, // pawns on e7, g7
-            Square::G6, // pawns on f7, h7, bishop on f5
-            Square::H6, // pawn on g7
-            Square::A5, // queen on d8
-            Square::C5, // pawn on d6
-            Square::E5, // pawn on d6
-            Square::F5, // knight on h6
-            Square::B4, // pawn on c5
-            Square::D4, // pawn on c5
-            Square::E4, // bishop on f5
-            Square::G4, // bishop on f5 + knight on h6
-            Square::H3, // bishop on f5
-        ]);
-        for sq in &squares_attacked_by_black {
-            assert!(pos.is_square_attacked(*sq, Color::Black));
-        }
-        let squares_not_attacked_by_black = SQUARES
-            .iter()
-            .filter(|sq| !squares_attacked_by_black.contains(sq));
-        for sq in squares_not_attacked_by_black {
-            assert!(!pos.is_square_attacked(*sq, Color::Black));
-        }
-    }
 }

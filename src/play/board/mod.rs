@@ -4,9 +4,10 @@ use std::{convert::TryFrom, fmt};
 
 use crate::play::{
     board::bitboard::Bitboard,
-    constants::{BLACK_PIECES, FILES, RANKS, WHITE_PIECES},
+    constants::{BLACK_PIECES, DIRECTIONS, FILES, RANKS, SQUARES, WHITE_PIECES},
     error::{FENParsingError, MoveError, MoveErrorType},
     types::{Color, Piece, Rank, Square},
+    utils::{self, set_bits},
 };
 
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
@@ -226,6 +227,75 @@ impl Board {
         }
         Ok(board)
     }
+
+    fn king_sq(&self, color: Color) -> Square {
+        let king_bb = match color {
+            Color::White => self.white_king,
+            Color::Black => self.black_king,
+        };
+        let set = set_bits(king_bb.0);
+        SQUARES[set[0]]
+    }
+
+    pub fn is_square_pinned(&self, sq: &Square) -> bool {
+        if let Some(piece) = self.piece(sq) {
+            let square: Square = *sq;
+            let sq_bb: Bitboard = square.into();
+            let mut future_board: Board = self.clone();
+
+            match piece {
+                Piece::WhitePawn => future_board.white_pawns &= sq_bb.flip(),
+                Piece::WhiteKnight => future_board.white_knights &= sq_bb.flip(),
+                Piece::WhiteBishop => future_board.white_bishops &= sq_bb.flip(),
+                Piece::WhiteRook => future_board.white_rooks &= sq_bb.flip(),
+                Piece::WhiteQueen => future_board.white_queens &= sq_bb.flip(),
+                Piece::WhiteKing => return false,
+                Piece::BlackPawn => future_board.black_pawns &= sq_bb.flip(),
+                Piece::BlackKnight => future_board.black_knights &= sq_bb.flip(),
+                Piece::BlackBishop => future_board.black_bishops &= sq_bb.flip(),
+                Piece::BlackRook => future_board.black_rooks &= sq_bb.flip(),
+                Piece::BlackQueen => future_board.black_queens &= sq_bb.flip(),
+                Piece::BlackKing => return false,
+            }
+
+            let king_sq = self.king_sq(piece.color());
+            future_board.is_square_attacked(king_sq, piece.color().opposing())
+        } else {
+            false
+        }
+    }
+
+    pub fn is_square_attacked(&self, sq: Square, color: Color) -> bool {
+        let piece_array: &[Piece; 6] = match color {
+            Color::White => &WHITE_PIECES,
+            Color::Black => &BLACK_PIECES,
+        };
+        for piece in piece_array {
+            let attack_dirs = DIRECTIONS[piece.attack_direction_idx()].to_vec();
+            let attack_bb = self.bitboard(*piece);
+
+            if attack_bb.0 == 0x0 {
+                continue;
+            }
+
+            if !piece.can_slide() {
+                for dir in attack_dirs {
+                    let mailbox_no = sq + dir as i8;
+                    if mailbox_no >= 0 {
+                        let other_sq_bb: Bitboard = Square::from_mailbox_no(mailbox_no).into();
+                        if (other_sq_bb & attack_bb).0 != 0x0 {
+                            return true;
+                        }
+                    }
+                }
+            } else {
+                if utils::recur_attack_sq_search(&self, attack_dirs, sq, 1, attack_bb) {
+                    return true;
+                }
+            }
+        }
+        false
+    }
 }
 
 impl Default for Board {
@@ -378,5 +448,23 @@ mod tests {
         let start_pos = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR";
         let parsed_board = Board::from_fen(start_pos).unwrap();
         assert_eq!(parsed_board, Board::default());
+    }
+
+    #[test]
+    fn test_king_sq() {
+        let fen = "rnbqk1nr/ppp2ppp/4p3/b2NP2Q/3P4/2P2P2/PP4PP/R1B1KBNR";
+        let board = Board::from_fen(fen).unwrap();
+        assert_eq!(board.king_sq(Color::White), Square::E1);
+        assert_eq!(board.king_sq(Color::Black), Square::E8);
+    }
+
+    #[test]
+    fn test_is_square_pinned() {
+        let fen = "rnb1k1nr/pp3ppp/4p3/3NP2Q/1bPP3q/8/PP1B1PPP/R3KBNR";
+        let board = Board::from_fen(fen).unwrap();
+        let pinned = vec![Square::D2, Square::F2, Square::F7];
+        for sq in SQUARES {
+            assert_eq!(pinned.contains(&sq), board.is_square_pinned(&sq));
+        }
     }
 }
