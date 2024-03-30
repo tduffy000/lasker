@@ -1,5 +1,4 @@
 use super::{
-    board::bitboard::Bitboard,
     constants::DIRECTIONS,
     position::Position,
     r#move::{Move, MoveList},
@@ -83,6 +82,11 @@ impl MoveGenerator {
 
     // TODO: figure out how this can return MoveList as opposed to mutating it
     pub fn generate_moves(position: &Position, piece: Piece, sq: Square, moves: &mut MoveList) {
+
+        if position.board.is_square_pinned(&sq) {
+            return;
+        }
+
         if piece.can_slide() {
             let dirs = &DIRECTIONS[piece.attack_direction_idx()].to_vec();
             let color = piece.color();
