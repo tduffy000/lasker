@@ -1,6 +1,7 @@
-# https://github.com/official-stockfish/Stockfish/blob/2046d5da30b2cd505b69bddb40062b0d37b43bc7/tests/perft.sh
 #!/bin/bash
+
 # verify perft numbers (positions from www.chessprogramming.org/Perft_Results)
+# https://github.com/official-stockfish/Stockfish/blob/2046d5da30b2cd505b69bddb40062b0d37b43bc7/tests/perft.sh
 
 error()
 {
@@ -11,19 +12,20 @@ trap 'error ${LINENO}' ERR
 
 echo "perft testing started"
 
+
 cat << EOF > perft.exp
-   set timeout 30
-   lassign \$argv pos depth result
+   set timeout 10
+   lassign \$argv depth result
    spawn ./target/debug/lasker
-   send "position \$pos\\ngo perft \$depth\\n"
-   expect "Nodes searched? \$result" {} timeout {exit 1}
-   send "quit\\n"
+   send "go perft \$depth\\n"
+   expect "total nodes searched: \$result" {} timeout {exit 1}
    expect eof
 EOF
 
-expect perft.exp startpos 3 8902 > /dev/null
-expect perft.exp startpos 4 197281 > /dev/null
-# expect perft.exp startpos 5 4865609 > /dev/null
+expect perft.exp 2 400 > /dev/null
+expect perft.exp 3 8902 > /dev/null
+# expect perft.exp 4 197281 > /dev/null
+# expect perft.exp 5 4865609 > /dev/null
 # expect perft.exp "fen r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq -" 5 193690690 > /dev/null
 # expect perft.exp "fen 8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - -" 6 11030083 > /dev/null
 # expect perft.exp "fen r3k2r/Pppp1ppp/1b3nbN/nP6/BBP1P3/q4N2/Pp1P2PP/R2Q1RK1 w kq - 0 1" 5 15833292 > /dev/null

@@ -18,6 +18,11 @@ go perft 2
 ```
 This will print the number of valid moves from the starting position to a `depth` of 2.
 
+A test script (mostly copied from [Stockfish](https://github.com/official-stockfish/Stockfish/blob/master/tests/perft.sh)) is contained within [`tests/perft.sh`](./tests/perft.sh) that covers the cases the engine handles (eventually it will actually be correct!),
+```sh
+bash tests/perft.sh
+```
+
 ## Resources
 ### Forums
 - [Talkchess](talkchess.com)
