@@ -1,7 +1,7 @@
 use super::{
-    board::{bitboard::Bitboard, Board},
+    board::Board,
     error::FENParsingError,
-    move_gen::MoveGenerator,
+    move_gen,
     r#move::MoveList,
     types::{CastlingRights, Color, PieceType, Square},
 };
@@ -13,10 +13,6 @@ pub struct Position {
     pub en_passant: Option<Square>,
     pub castling_permissions: CastlingRights, // bits = [ wK, wQ, bK, bQ ]
     pub castling_perms_history: Vec<CastlingRights>,
-    pub checkers: [Bitboard; 2],
-    pub blockers_for_king: [Bitboard; 2],
-    pub pinners: [Bitboard; 2],
-    pub check_squares: [Bitboard; 8],
 }
 
 impl Default for Position {
@@ -27,11 +23,6 @@ impl Default for Position {
             en_passant: None,
             castling_permissions: CastlingRights::all(),
             castling_perms_history: vec![],
-            // TODO: all the logic updating the below needs to be implemented
-            checkers: [Bitboard::empty(); 2],
-            blockers_for_king: [Bitboard::empty(); 2],
-            pinners: [Bitboard::empty(); 2],
-            check_squares: [Bitboard::empty(); 8],
         }
     }
 }
@@ -63,12 +54,6 @@ impl Position {
         // en passant
         pos.en_passant = Square::from_fen(&fields[3])?;
 
-        // TODO: update checks
-
-        // TODO: update blockers_for_king
-
-        // TODO: update check_squares
-
         Ok(pos)
     }
 
@@ -93,9 +78,9 @@ impl Position {
         for piece in self.board.pieces(color) {
             for sq in self.board.bitboard(piece) {
                 if piece.piece_type() == PieceType::Pawn {
-                    MoveGenerator::generate_pawn_moves(&self, sq, &mut moves);
+                    move_gen::generate_pawn_moves(&self, sq, &mut moves);
                 } else {
-                    MoveGenerator::generate_moves(&self, piece, sq, &mut moves);
+                    move_gen::generate_moves(&self, piece, sq, &mut moves);
                 }
             }
         }

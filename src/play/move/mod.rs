@@ -107,6 +107,7 @@ pub fn make_move(mv: Move, state: &mut GameState) -> Result<(), MoveError> {
         .position
         .castling_perms_history
         .push(state.position.castling_permissions);
+
     Ok(())
 }
 
@@ -128,11 +129,8 @@ pub fn unmake_move(mv: Move, state: &mut GameState) -> Result<(), MoveError> {
         if let Some(piece) = mv.captured() {
             state.position.board.add_piece(piece, mv.to_sq())?;
         }
+        state.position.en_passant = None;
     }
-
-    // TODO: idk about the first castling condition
-
-    if mv.pawn_start() {}
 
     if mv.en_passant() {
         match state.position.side_to_move {
@@ -146,9 +144,11 @@ pub fn unmake_move(mv: Move, state: &mut GameState) -> Result<(), MoveError> {
             }
         };
         state.position.en_passant = Some(mv.to_sq());
-    } else {
-        state.position.en_passant = None
     }
+
+    // TODO: idk about the first castling condition
+
+    if mv.pawn_start() {}
 
     state.ply -= 1;
     state.position.flip_side();
@@ -358,11 +358,16 @@ impl MoveList {
     pub fn push(&mut self, mv: Move) -> () {
         if self.count == MOVE_LIST_SIZE as u8 {
             panic!("MoveList full!");
-        } else {
-            self.inner[self.count as usize] = mv;
-            self.count += 1;
         }
+        self.inner[self.count as usize] = mv;
+        self.count += 1;
     }
+
+    pub fn count(&self) -> u8 {
+        self.count
+    }
+
+    // TODO: add accessor for nonempty moves as vec
 }
 
 #[cfg(test)]

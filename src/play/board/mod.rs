@@ -237,6 +237,14 @@ impl Board {
         SQUARES[set[0]]
     }
 
+    pub fn is_king_in_check(&self, color: Color) -> bool {
+        let sq = self.king_sq(color);
+        return self.is_square_attacked(sq, color.opposing());
+    }
+
+    // TODO (tcd 9/2/24): this also evaluates to true if the king was in check
+    // when the caller called this method, which means it indicates that every
+    // piece is "pinned" when you call it like that
     pub fn is_square_pinned(&self, sq: &Square) -> bool {
         if let Some(piece) = self.piece(sq) {
             let square: Square = *sq;
@@ -295,6 +303,24 @@ impl Board {
             }
         }
         false
+    }
+
+    pub fn attackers_bitboard(&self, sq: Square, color: Color) -> Bitboard {
+        let mut bb = Bitboard::empty();
+
+        bb
+    }
+
+    pub fn pinners_bitboard(&self, sq: Square, color: Color) -> Bitboard {
+        let mut bb = Bitboard::empty();
+
+        bb
+    }
+
+    pub fn blockers_bitboard(&self, sq: Square, color: Color) -> Bitboard {
+        let mut bb = Bitboard::empty();
+
+        bb
     }
 }
 

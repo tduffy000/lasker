@@ -1,9 +1,11 @@
 use crate::play::types::Square;
 
+#[derive(Debug)]
 pub struct MoveError {
     err: MoveErrorType,
 }
 
+#[derive(Debug)]
 pub enum MoveErrorType {
     SquareTakenError(Square),
     NoPieceOnSquareError(Square),
