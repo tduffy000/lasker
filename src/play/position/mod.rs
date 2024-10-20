@@ -10,9 +10,8 @@ use super::{
 pub struct Position {
     pub board: Board,
     pub side_to_move: Color,
-    pub en_passant: Option<Square>,
-    pub castling_permissions: CastlingRights, // bits = [ wK, wQ, bK, bQ ]
-    pub castling_perms_history: Vec<CastlingRights>,
+    pub castling_permission_history: Vec<CastlingRights>, // bits = [ wK, wQ, bK, bQ ] 
+    pub en_passant_history: Vec<Option<Square>>,
 }
 
 impl Default for Position {
@@ -20,9 +19,8 @@ impl Default for Position {
         Self {
             board: Board::default(),
             side_to_move: Color::White,
-            en_passant: None,
-            castling_permissions: CastlingRights::all(),
-            castling_perms_history: vec![],
+            castling_permission_history: vec![CastlingRights::all()],
+            en_passant_history: vec![None],
         }
     }
 }
@@ -38,22 +36,16 @@ impl Position {
             )));
         }
 
-        let mut pos = Position::default();
+        let board = Board::from_fen(&fields[0])?;
+        let side_to_move = if fields[1] == "b".to_string() {
+            Color::Black
+        } else {
+            Color::White
+        };
+        let castling_permission_history = vec![CastlingRights::from_fen(&fields[2])?];
+        let en_passant_history = vec![Square::from_fen(&fields[3])?];
 
-        // board
-        pos.board = Board::from_fen(&fields[0])?;
-
-        // piece to move
-        if fields[1] == "b".to_string() {
-            pos.side_to_move = Color::Black
-        }
-
-        // castling
-        pos.castling_permissions = CastlingRights::from_fen(&fields[2])?;
-
-        // en passant
-        pos.en_passant = Square::from_fen(&fields[3])?;
-
+        let pos = Position { board, side_to_move, castling_permission_history, en_passant_history };
         Ok(pos)
     }
 
@@ -85,6 +77,14 @@ impl Position {
             }
         }
         moves
+    }
+
+    pub fn castling_permissions(&self) -> CastlingRights {
+        *self.castling_permission_history.last().unwrap()
+    }
+
+    pub fn en_passant(&self) -> Option<Square> {
+        *self.en_passant_history.last().unwrap()
     }
 
     // TODO: use piece Type here

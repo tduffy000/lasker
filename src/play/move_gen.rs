@@ -96,7 +96,7 @@ pub fn generate_pawn_moves(position: &Position, sq: Square, moves: &mut MoveList
                 }
             } else {
                 // TODO (tcd 9/2/24): check allevation
-                if let Some(ep_sq) = position.en_passant {
+                if let Some(ep_sq) = position.en_passant() {
                     if diag_sq == ep_sq {
                         moves.push(Move::new(
                             sq,
@@ -162,7 +162,7 @@ pub fn generate_moves(position: &Position, piece: Piece, sq: Square, moves: &mut
 
         match piece.color() {
             Color::White => {
-                if position.castling_permissions.white_kingside()
+                if position.castling_permissions().white_kingside()
                     & !position.board.sq_taken(Square::F1)
                     & !position.board.sq_taken(Square::G1)
                     & !position.board.is_square_attacked(Square::F1, Color::Black)
@@ -178,7 +178,7 @@ pub fn generate_moves(position: &Position, piece: Piece, sq: Square, moves: &mut
                         true,
                     ));
                 }
-                if position.castling_permissions.white_queenside()
+                if position.castling_permissions().white_queenside()
                     & !position.board.sq_taken(Square::C1)
                     & !position.board.sq_taken(Square::D1)
                     & !position.board.is_square_attacked(Square::C1, Color::Black)
@@ -196,7 +196,7 @@ pub fn generate_moves(position: &Position, piece: Piece, sq: Square, moves: &mut
                 }
             }
             Color::Black => {
-                if position.castling_permissions.black_kingside()
+                if position.castling_permissions().black_kingside()
                     & !position.board.sq_taken(Square::F8)
                     & !position.board.sq_taken(Square::G8)
                     & !position.board.is_square_attacked(Square::F8, Color::White)
@@ -212,7 +212,7 @@ pub fn generate_moves(position: &Position, piece: Piece, sq: Square, moves: &mut
                         true,
                     ));
                 }
-                if position.castling_permissions.black_queenside()
+                if position.castling_permissions().black_queenside()
                     & !position.board.sq_taken(Square::C8)
                     & !position.board.sq_taken(Square::D8)
                     & !position.board.is_square_attacked(Square::C8, Color::White)
@@ -235,6 +235,8 @@ pub fn generate_moves(position: &Position, piece: Piece, sq: Square, moves: &mut
 
 #[cfg(test)]
 mod tests {
+    use crate::play::{r#move::{make_move, unmake_move}, GameState};
+
     use super::*;
 
     #[test]
@@ -363,6 +365,46 @@ mod tests {
 
         assert_eq!(se_moves.count(), 0);
         assert_eq!(sw_moves.count(), 0);
+    }
+
+    #[test]
+    fn test_generate_pawn_moves_en_passant_bug() {
+        let fen = "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1";
+        let mut state = GameState::from_fen(fen).unwrap();
+
+        let ml_1 = &mut MoveList::empty();
+
+        generate_pawn_moves(&state.position, Square::A2, ml_1);
+
+        println!("mvs: {}", ml_1);
+
+        for m in ml_1 {
+            if m.pawn_start() {
+                println!("move: {}", m);
+                make_move(m, &mut state).unwrap();
+            }
+        }
+
+        println!("state: {:?}", state);
+
+        let ml_2 = &mut MoveList::empty();
+        generate_pawn_moves(&state.position, Square::B4, ml_2);
+        // make the pawn start move
+        println!("mvs: {}", ml_2);
+
+        for m in ml_2 {
+            if m.to_sq() == Square::B3 {
+                println!("move: {}", m);
+                make_move(m, &mut state).unwrap();
+                println!("state: {:?}", state);
+                unmake_move(m, &mut state);
+                // now the reversion should return the en passant state
+                println!("state: {:?}", state);
+            }
+        }
+
+        assert!(state.position.en_passant().is_some())
+
     }
 
     #[test]

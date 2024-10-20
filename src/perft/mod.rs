@@ -33,7 +33,8 @@ fn perft(state: &mut GameState, depth: u64) -> u64 {
             Ok(()) => {}
             Err(e) => {
                 println!("\n\rerror making move: {:?}", mv.to_string());
-                println!("board: {:?}", state.position.board);
+                println!("\n\rmove is_capture: {:?}", mv.captured());
+                println!("game state: {:?}", state);
                 e.print_msg()
             }
         };
@@ -42,7 +43,7 @@ fn perft(state: &mut GameState, depth: u64) -> u64 {
             Ok(()) => {}
             Err(e) => {
                 println!("\n\rerror unmaking move: {:?}", mv.to_string());
-                println!("board: {:?}", state.position.board);
+                println!("game state: {:?}", state);
                 e.print_msg()
             }
         };

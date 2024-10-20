@@ -57,10 +57,10 @@ impl PositionKeyGenerator {
         }
 
         // castling
-        key ^= self.castling_permission_hashes[state.position.castling_permissions.0 as usize];
+        key ^= self.castling_permission_hashes[state.position.castling_permissions().0 as usize];
 
         // en passant
-        if let Some(sq) = state.position.en_passant {
+        if let Some(sq) = state.position.en_passant() {
             key ^= self.en_passant_hashes[sq as usize]
         }
 
@@ -93,15 +93,15 @@ mod tests {
         assert_eq!(base_key, key_gen.hash_board(&state));
 
         // switch en passant
-        state.position.en_passant = Some(Square::C3);
+        state.position.en_passant_history.push(Some(Square::C3));
         assert_ne!(base_key, key_gen.hash_board(&state));
-        state.position.en_passant = None;
+        state.position.en_passant_history.pop();
         assert_eq!(base_key, key_gen.hash_board(&state));
 
         // switch castling rights (default == 0b1111)
-        state.position.castling_permissions = CastlingRights(0b1010);
+        state.position.castling_permission_history.push(CastlingRights(0b1010));
         assert_ne!(base_key, key_gen.hash_board(&state));
-        state.position.castling_permissions = CastlingRights(0b1111);
+        state.position.castling_permission_history.pop();
         assert_eq!(base_key, key_gen.hash_board(&state));
 
         // add a piece
